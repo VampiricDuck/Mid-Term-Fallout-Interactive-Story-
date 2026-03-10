@@ -3,13 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Fallout Interactive Stroy</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="script.js"></script>
 </head>
 <body>
-    
+	<div class="overlay"></div>
+	<div class="scanline"></div>
+	<div class="wrapper">
+		<div class="content clearfix">
 
-    <!-- Script and link tag linking the page to the game-script.js and page-style.css files -->
-    <script src="game-script.js" href></script>
-    <link rel="Stylesheet" href="page-style.css">
+			<header class="site clearfix">
+				<div class="col one">
+					<!-- the image that is displayed in the top left corner of the browser. -->
+					<img src="Images/placeholder.png" alt="" width="740" height="729" id="logo-v" />
+				</div>
+				<div class="col two">
+					<!-- text below the image -->
+					<!-- use h4 for any heading, also if tou make a <b> tag in a h4 tag the text becoms white. this goes for any text -->
+				</div>
+			</header>
+
+			<nav class="site clear">
+				<!-- likley going to be the player options, devently changing these to numbered lines like a consol option -->
+				<!--<ul>
+					<li><a href="#" title="">Return Home</a></li>
+					<li><a href="#" title="">Our Clients</a></li>
+					<li><a href="#" title="">Contact Us</a></li>
+				</ul>-->
+			</nav>
+
+			<!-- reguler text without a div -->
+
+			<!-- only creates a brake -->
+			<!--<p class="clear"><br /></p>-->
+
+			
+			<!-- just a form. going to use this for character creation -->
+			<!--<form>
+				<label>Name >></label><input type="text" /><br />
+				<label>Email >></label><input type="text" /><br />
+				<label>Subject >></label><input type="text" /><br />
+				<label>Message >></label><textarea id="text" rows="1"></textarea><br /><br /><br />
+				<input type="submit" value="Submit" />
+				<a class="button" alt="" href="index.html">Cancel</a>
+			</form>-->
+		</div>
+	</div>
 </body>
 </html>
