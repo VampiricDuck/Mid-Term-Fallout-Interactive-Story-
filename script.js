@@ -1,60 +1,80 @@
 
-
 // Character Data //
-let name0 = "";
-let sex = "-";
-let str = 5;
-let per = 5;
-let end = 5;
-let cha = 5;
-let int = 5;
-let agi = 5;
-let luc = 5;
-let strmod = str - 5;
-let permod = per - 5;
-let endmod = end - 5;
-let chamod = cha - 5;
-let intmod = int - 5;
-let agimod = agi - 5;
-let lucmod = luc - 5;
-let level = 1;
-let scorept = 3;
-let xp = 0;
-let hp = endmod + 10;
-let sp = agimod + 10;
-let ap = agimod + 10;
-let hr = (level + end) / 2;
-let ac ;
+const chardata = {};    
+chardata.name = "-";
+chardata.sex = "-";
+chardata.str = 5;
+chardata.per = 5;
+chardata.end = 5;
+chardata.cha = 5;
+chardata.int = 5;
+chardata.agi = 5;
+chardata.luc = 5;
+chardata.strmod = chardata.str - 5;
+chardata.permod = chardata.per - 5;
+chardata.endmod = chardata.end - 5;
+chardata.chamod = chardata.cha - 5;
+chardata.intmod = chardata.int - 5;
+chardata.agimod = chardata.agi - 5;
+chardata.lucmod = chardata.luc - 5;
+chardata.level = 1;
+chardata.scorept = 3;
+chardata.xp = 0;
+chardata.hp = chardata.endmod + 10;
+chardata.sp = chardata.agimod + 10;
+chardata.ap = chardata.agimod + 10;
+chardata.hr = (chardata.level + chardata.end) / 2;
+chardata.ac = 10;
+chardata.radDC = 12 - chardata.endmod;
+chardata.race = "human";
+chardata.background = "wastelander";
+chardata.traits = [
+    {id: "1", name: "Adventurers Instinct", desc: "You know the best places to scavenge and where loot is often hiding. Whenever you roll a Luck ability check to search for items, you have advantage. However, any weapons or armor you find have an additional level of decay."},
+    {id: "2", name: "Resourceful", desc: "You gain one extra Karma Cap"},
+    {id: "3", name: "Unexposed", desc: "You have disadvantage on all Radiation checks."},
+];
+chardata.equipment = [
+        {id: "1", name: "leather armor", type: "armor", AC: 11, DT: 1, STRreq: 1, Decay: 0, amount: 1},
+        {id: "2", name: "sharpened pole", type: "melee weapon", AP: 5, damage: "1d4", CriticalHit: "20, x3",properties: ["Fragile", "Reach", "Thrown", "x6/x10"], STRreq: 1, Decay: 0, amount: 1},
+        {id: "3", name: "10mm pistol", type: "ranged weapon", AP: 5, damage: "2d4", CriticalHit: "19, 1d4", ammo: "10mm, 12 rounds", properties: ["sturdy", "kickback"], STRreq: 4, Decay: 0, amount: 1},
+        {id: "4", name: "10mm ammo", type: "ammo", amount: 10},
+        {id: "5", name: "healing powder", type: "consumable", AP: 6, HPrestor: Math.floor(chardata.hr / 2), amount: 1},
+        {id: "6", name: "caps", type: "currency", amount: 50},
+];
 // skills //
-let barter = chamod;
-let breach;
-if (permod > chamod) {
-    breach = permod;
-} else {
-    breach = chamod;
+chardata.barter = chardata.chamod;
+chardata.breach = function() {
+    if (chardata.permod > chardata.chamod) {
+        return chardata.permod;
+    } else {
+        return chardata.chamod;
 }
-let energyweapons = permod;
-let explosives = permod;
-let guns = agimod;
-let intimiation;
-if (strmod > chamod) {
-    intimidation = strmod;
-} else {
-    intimidation = chamod;
-}
-let medicine;
-if (permod > intmod) {
-    medicine = permod;
-} else {
-    medicine = intmod;
-}
-let melee = strmod;
-let science = intmod;
-let sneak = agimod;
-let speech = chamod;
-let survival = endmod;
-let unarmed = strmod;
-let luckbs = Math.floor(lucmod / 2);
+};
+chardata.crafting = chardata.intmod;
+chardata.energyweapons = chardata.permod;
+chardata.explosives = chardata.permod;
+chardata.guns = chardata.agimod;
+chardata.intimidation = function() {
+    if (chardata.strmod > chardata.chamod) {
+        return chardata.strmod;
+        } else {
+            return chardata.chamod;
+        }
+    };
+chardata.medicine = function() {
+        if (chardata.permod > chardata.intmod) {
+            return chardata.permod;
+        } else {
+            return chardata.intmod;
+        }
+    };
+chardata.melee = chardata.strmod;
+chardata.science = chardata.intmod;
+chardata.sneak = chardata.agimod;
+chardata.speech = chardata.chamod;
+chardata.survival = chardata.endmod;
+chardata.unarmed = chardata.strmod,
+chardata.luckbs = Math.floor(chardata.lucmod / 2)
 
 // constant holding the nodes //
 const pageNodes = [
@@ -73,481 +93,487 @@ const pageNodes = [
         imgwidth: "740",
         imghight: "729",
         title: "what makes you s.p.e.c.i.a.l.?",
-        name: name0,
-        sex: sex,
-        hp: hp,
-        sp: sp,
-        ap: ap,
-        hr: hr,
-        ac: ac,
-        str: "STRENGTH ",
-        strnum: str,
-        strmod: strmod,
-        per: "PERSEPTION ",
-        pernum: per,
-        permod: permod,
-        end: "ENDURENCE ",
-        endnum: end,
-        endmod: endmod,
-        cha: "CHARISMA ",
-        chanum: cha,
-        chamod: chamod,
-        int: "INTELIGENCE ",
-        intnum: int,
-        intmod: intmod,
-        agi: "AGILITY ",
-        aginum: agi,
-        agimod: agimod,
-        luc: "LUCK ",
-        lucnum: luc,
-        lucmod: lucmod,
-        scorept: scorept,
-        barter: barter,
-        breach: breach,
-        energyweapons: energyweapons,
-        explosives: explosives,
-        guns: guns,
-        intimidation: intimidation,
-        medicine: medicine,
-        melee: melee,
-        science: science,
-        sneak: sneak,
-        speech: speech,
-        survival: survival,
-        unarmed: unarmed
     },
+];
+
+// items and equipment found in game //
+const itemrep = [
+    items= {
+
+    }
 ];
 function characterCreation(index) {
     document.getElementById("logo-v").src = pageNodes[index].img
-    document.getElementById("scorept").textContent = "POINTS REMAINING: " + pageNodes[index].scorept
+    document.getElementById("scorept").textContent = "POINTS REMAINING: " + chardata.scorept
     document.getElementById("name").textContent = "NAME: "
-    document.getElementById("sex").textContent = "SEX: " + pageNodes[index].sex + " >> "
-    document.getElementById("level").textContent = "LEVEL: " + level
-    document.getElementById("hp").textContent = "HIT POINTS: " + pageNodes[index].hp
-    document.getElementById("sp").textContent = "STAMINA POINTS: " + pageNodes[index].sp
-    document.getElementById("ap").textContent = "ACTION POINTS: " + pageNodes[index].ap
-    document.getElementById("hr").textContent = "HEALING RATING: " + pageNodes[index].hr
-    document.getElementById("ac").textContent = "ARMOR CLASS: " + pageNodes[index].ac
+    document.getElementById("sex").textContent = "SEX: " + chardata.sex + " >> "
+    document.getElementById("level").textContent = "LEVEL: " + chardata.level
+    document.getElementById("hp").textContent = "HIT POINTS: " + chardata.hp
+    document.getElementById("sp").textContent = "STAMINA POINTS: " + chardata.sp
+    document.getElementById("ap").textContent = "ACTION POINTS: " + chardata.ap
+    document.getElementById("hr").textContent = "HEALING RATING: " + chardata.hr
+    document.getElementById("ac").textContent = "ARMOR CLASS: " + chardata.ac
     document.getElementById("skills").textContent = "SKILLS: "
-    document.getElementById("barter").textContent = "BARTER: " + pageNodes[index].barter
-    document.getElementById("breach").textContent = "BREACH: " + pageNodes[index].breach
-    document.getElementById("energyweapons").textContent = "ENERGY WEAPONS: " + pageNodes[index].energyweapons
-    document.getElementById("explosives").textContent = "EXPLOSIVES: " + pageNodes[index].explosives
-    document.getElementById("guns").textContent = "GUNS: " + pageNodes[index].guns
-    document.getElementById("intimidation").textContent = "INTIMIDATION: " + pageNodes[index].intimidation
-    document.getElementById("medicine").textContent = "MEDICINE: " + pageNodes[index].medicine
-    document.getElementById("melee").textContent = "MELEE: " + pageNodes[index].melee
-    document.getElementById("science").textContent = "SCIENCE: " + pageNodes[index].science
-    document.getElementById("sneak").textContent = "SNEAK: " + pageNodes[index].sneak
-    document.getElementById("speech").textContent = "SPEECH: " + pageNodes[index].speech
-    document.getElementById("survival").textContent = "SURVIVAL: " + pageNodes[index].survival
-    document.getElementById("unarmed").textContent = "UNARMED: " + pageNodes[index].unarmed
-
-    if (strmod < 0) {
-        document.getElementById("strength").textContent = pageNodes[index].str + pageNodes[index].strnum + " >> " + "Modifier " + pageNodes[index].strmod
+    if (chardata.barter < 0) {
+        document.getElementById("barter").textContent = "BARTER: " + chardata.barter
     } else {
-        document.getElementById("strength").textContent = pageNodes[index].str + pageNodes[index].strnum + " >> " + "Modifier " + "+" + pageNodes[index].strmod}
-    if (permod < 0) {
-        document.getElementById("perseption").textContent = pageNodes[index].per + pageNodes[index].pernum + " >> " + "Modifier " + pageNodes[index].permod
+        document.getElementById("barter").textContent = "BARTER: " + "+" + chardata.barter}
+    if (chardata.breach < 0) {
+        document.getElementById("breach").textContent = "BREACH: " + chardata.breach()
     } else {
-        document.getElementById("perseption").textContent = pageNodes[index].per + pageNodes[index].pernum + " >> " + "Modifier " + "+" + pageNodes[index].permod}
-    if (endmod < 0) {
-        document.getElementById("endurance").textContent = pageNodes[index].end + pageNodes[index].endnum + " >> " + "Modifier " + pageNodes[index].endmod
+    document.getElementById("breach").textContent = "BREACH: " + "+" + chardata.breach}
+    if (chardata.crafting < 0) {
+        document.getElementById("crafting").textContent = "CRAFTING: " + chardata.crafting
     } else {
-        document.getElementById("endurance").textContent = pageNodes[index].end + pageNodes[index].endnum + " >> " + "Modifier " + "+" + pageNodes[index].endmod}
-    if (chamod < 0) {
-        document.getElementById("charisma").textContent = pageNodes[index].cha + pageNodes[index].chanum + " >> " + "Modifier " + pageNodes[index].chamod
+        document.getElementById("crafting").textContent = "CRAFTING: " + "+" + chardata.crafting}
+    if (chardata.energyweapons < 0) {
+        document.getElementById("energyweapons").textContent = "ENERGY WEAPONS: " + chardata.energyweapons
     } else {
-        document.getElementById("charisma").textContent = pageNodes[index].cha + pageNodes[index].chanum + " >> " + "Modifier " + "+" + pageNodes[index].chamod}
-    if (intmod < 0) {
-        document.getElementById("intelligence").textContent = pageNodes[index].int + pageNodes[index].intnum + " >> " + "Modifier " + pageNodes[index].intmod
+        document.getElementById("energyweapons").textContent = "ENERGY WEAPONS: " + "+" + chardata.energyweapons}
+    if (chardata.explosives < 0) {
+        document.getElementById("explosives").textContent = "EXPLOSIVES: " + chardata.explosives
     } else {
-        document.getElementById("intelligence").textContent = pageNodes[index].int + pageNodes[index].intnum + " >> " + "Modifier " + "+" + pageNodes[index].intmod}
-    if (agimod < 0) {
-        document.getElementById("agility").textContent = pageNodes[index].agi + pageNodes[index].aginum + " >> " + "Modifier " + pageNodes[index].agimod
+        document.getElementById("explosives").textContent = "EXPLOSIVES: " + "+" + chardata.explosives}
+    if (chardata.guns < 0) {
+        document.getElementById("guns").textContent = "GUNS: " + chardata.guns
     } else {
-        document.getElementById("agility").textContent = pageNodes[index].agi + pageNodes[index].aginum + " >> " + "Modifier " + "+" + pageNodes[index].agimod}
-    if (lucmod < 0) {
-        document.getElementById("luck").textContent = pageNodes[index].luc + pageNodes[index].lucnum + " >> " + "Modifier " + pageNodes[index].lucmod
+        document.getElementById("guns").textContent = "GUNS: " + "+" + chardata.guns}
+    if (chardata.intimidation < 0) {
+        document.getElementById("intimidation").textContent = "INTIMIDATION: " + chardata.intimidation
     } else {
-        document.getElementById("luck").textContent = pageNodes[index].luc + pageNodes[index].lucnum + " >> " + "Modifier " + "+" + pageNodes[index].lucmod}
+        document.getElementById("intimidation").textContent = "INTIMIDATION: " + "+" + chardata.intimidation}
+    if (chardata.medicine < 0) {
+        document.getElementById("medicine").textContent = "MEDICINE: " + chardata.medicine
+    } else {
+        document.getElementById("medicine").textContent = "MEDICINE: " + "+" + chardata.medicine}
+    if (chardata.melee < 0) {
+        document.getElementById("melee").textContent = "MELEE: " + chardata.melee
+    } else {
+        document.getElementById("melee").textContent = "MELEE: " + "+" + chardata.melee}
+    if (chardata.science < 0) {
+        document.getElementById("science").textContent = "SCIENCE: " + chardata.science
+    } else {
+        document.getElementById("science").textContent = "SCIENCE: " + "+" + chardata.science}
+    if (chardata.sneak < 0) {
+        document.getElementById("sneak").textContent = "SNEAK: " + chardata.sneak
+    } else {
+        document.getElementById("sneak").textContent = "SNEAK: " + "+" + chardata.sneak}
+    if (chardata.speech < 0) {
+        document.getElementById("speech").textContent = "SPEECH: " + chardata.speech
+    } else {
+        document.getElementById("speech").textContent = "SPEECH: " + "+" + chardata.speech}
+    if (chardata.survival < 0) {
+        document.getElementById("survival").textContent = "SURVIVAL: " + chardata.survival
+    } else {
+        document.getElementById("survival").textContent = "SURVIVAL: " + "+" + chardata.survival}
+    if (chardata.unarmed < 0) {
+        document.getElementById("unarmed").textContent = "UNARMED: " + chardata.unarmed
+    } else {
+        document.getElementById("unarmed").textContent = "UNARMED: " + "+" + chardata.unarmed}
+    if (chardata.strmod < 0) {
+        document.getElementById("strength").textContent = "STRENGTH: " + chardata.str + " >> " + "Modifier " + chardata.strmod
+    } else {
+        document.getElementById("strength").textContent = "STRENGTH: " + chardata.str + " >> " + "Modifier " + "+" + chardata.strmod}
+    if (chardata.permod < 0) {
+        document.getElementById("perseption").textContent = "PERCEPTION: " + chardata.per + " >> " + "Modifier " + chardata.permod
+    } else {
+        document.getElementById("perseption").textContent = "PERCEPTION: " + chardata.per + " >> " + "Modifier " + "+" + chardata.permod}
+    if (chardata.endmod < 0) {
+        document.getElementById("endurance").textContent = "ENDURANCE: " + chardata.end + " >> " + "Modifier " + chardata.endmod
+    } else {
+        document.getElementById("endurance").textContent = "ENDURANCE: " + chardata.end + " >> " + "Modifier " + "+" + chardata.endmod}
+    if (chardata.chamod < 0) {
+        document.getElementById("charisma").textContent = "CHARISMA: " + chardata.cha + " >> " + "Modifier " + chardata.chamod
+    } else {
+        document.getElementById("charisma").textContent = "CHARISMA: " + chardata.cha + " >> " + "Modifier " + "+" + chardata.chamod}
+    if (chardata.intmod < 0) {
+        document.getElementById("intelligence").textContent = "INTELLIGENCE: " + chardata.int + " >> " + "Modifier " + chardata.intmod
+    } else {
+        document.getElementById("intelligence").textContent = "INTELLIGENCE: " + chardata.int + " >> " + "Modifier " + "+" + chardata.intmod}
+    if (chardata.agimod < 0) {
+        document.getElementById("agility").textContent = "AGILITY: " + chardata.agi + " >> " + "Modifier " + chardata.agimod
+    } else {
+        document.getElementById("agility").textContent = "AGILITY: " + chardata.agi + " >> " + "Modifier " + "+" + chardata.agimod}
+    if (chardata.lucmod < 0) {
+        document.getElementById("luck").textContent = "LUCK: " + chardata.luc + " >> " + "Modifier " + chardata.lucmod
+    } else {
+        document.getElementById("luck").textContent = "LUCK: " + chardata.luc + " >> " + "Modifier " + "+" + chardata.lucmod}
 }
 characterCreation(3)
 document.getElementById("malebutton").addEventListener("click", function () {
     sex = "M"
-    pageNodes[3].sex = sex
+    chardata.sex = sex
     characterCreation(3);
 });
 document.getElementById("femalebutton").addEventListener("click", function () {
     sex = "F"
-    pageNodes[3].sex = sex
+    chardata.sex = sex
     characterCreation(3);
 });
 document.getElementById("name-input").addEventListener("input", function () {
     name0 = String(document.getElementById("name-input").value);
-    pageNodes[3].name = name0;
+    chardata.name = name0;
     console.log(name0);
     characterCreation(3);
 });
 document.getElementById("strincrease").addEventListener("click", function () {
-    if (str < 10 && scorept > 0) {
-        str += 1;
-        strmod = str - 5;
-        scorept -= 1;
-        if (strmod > chamod) {
-            intimidation = strmod + luckbs;
+    if (chardata.str < 10 && chardata.scorept > 0) {
+        chardata.str += 1;
+        chardata.strmod = chardata.str - 5;
+        chardata.scorept -= 1;
+        if (chardata.strmod > chardata.chamod) {
+            chardata.intimidation = chardata.strmod + chardata.luckbs;
         } else {
-            intimidation = chamod + luckbs;
+            chardata.intimidation = chardata.chamod + chardata.luckbs;
         }
-        melee = strmod + luckbs;
-        unarmed = strmod + luckbs;
-        pageNodes[3].intimidation = intimidation;
-        pageNodes[3].melee = melee;
-        pageNodes[3].unarmed = unarmed;
-        pageNodes[3].scorept = scorept;
+        chardata.melee = chardata.strmod + chardata.luckbs;
+        chardata.unarmed = chardata.strmod + chardata.luckbs;
+        chardata.scorept = chardata.scorept;
     }
-    pageNodes[3].strnum = str;
-    pageNodes[3].strmod = strmod;
+    chardata.strnum = chardata.str;
+    chardata.strmod = chardata.strmod;
     characterCreation(3);
 });
 document.getElementById("strdecrease").addEventListener("click", function () {
-    if (str > 1) {
-        str -= 1;
-        strmod = str - 5;
-        scorept += 1;
-        if (strmod > chamod) {
-            intimidation = strmod + luckbs;
+    if (chardata.str > 1) {
+        chardata.str -= 1;
+        chardata.strmod = chardata.str - 5;
+        chardata.scorept += 1;
+        if (chardata.strmod > chardata.chamod) {
+            chardata.intimidation = chardata.strmod + chardata.luckbs;
         } else {
-            intimidation = chamod + luckbs;
-        }        
-        melee = strmod + luckbs;
-        unarmed = strmod + luckbs;
-        pageNodes[3].intimidation = intimidation;
-        pageNodes[3].melee = melee;
-        pageNodes[3].unarmed = unarmed;
-        pageNodes[3].scorept = scorept;
-        pageNodes[3].strnum = str;
-        pageNodes[3].strmod = strmod;
+            chardata.intimidation = chardata.chamod + chardata.luckbs;
+        }
+        chardata.melee = chardata.strmod + chardata.luckbs;
+        chardata.unarmed = chardata.strmod + chardata.luckbs;
+        chardata.intimidation = chardata.intimidation;
+        chardata.melee = chardata.melee;
+        chardata.unarmed = chardata.unarmed;
+        chardata.scorept = chardata.scorept;
+        chardata.strnum = chardata.str;
+        chardata.strmod = chardata.strmod;
         characterCreation(3);
     }
 });
 document.getElementById("perincrease").addEventListener("click", function () {
-    if (per < 10 && scorept > 0) {
-        per += 1;
-        permod = per - 5;
-        scorept -= 1;
-        if (permod > intmod) {
-            breach = permod + luckbs;
+    if (chardata.per < 10 && chardata.scorept > 0) {
+        chardata.per += 1;
+        chardata.permod = chardata.per - 5;
+        chardata.scorept -= 1;
+        if (chardata.permod > chardata.intmod) {
+            chardata.breach = chardata.permod + chardata.luckbs;
         } else {            
-            breach = intmod + luckbs;
+            chardata.breach = chardata.intmod + chardata.luckbs;
         }
-        if (permod > intmod) {
-            medicine = permod + luckbs;
+        if (chardata.permod > chardata.intmod) {
+            chardata.medicine = chardata.permod + chardata.luckbs;
         } else {
-            medicine = intmod + luckbs;
+            chardata.medicine = chardata.intmod + chardata.luckbs;
         }
-        energyweapons = permod + luckbs;
-        explosives = permod + luckbs;
-        pageNodes[3].medicine = medicine;
-        pageNodes[3].breach = breach;
-        pageNodes[3].energyweapons = energyweapons;
-        pageNodes[3].explosives = explosives;
-        pageNodes[3].scorept = scorept;
+        chardata.energyweapons = chardata.permod + chardata.luckbs;
+        chardata.explosives = chardata.permod + chardata.luckbs;
+        chardata.medicine = chardata.medicine;
+        chardata.breach = chardata.breach;
+        chardata.energyweapons = chardata.energyweapons;
+        chardata.explosives = chardata.explosives;
+        chardata.scorept = chardata.scorept;
     }
-    pageNodes[3].pernum = per;
-    pageNodes[3].permod = permod;
+    chardata.pernum = chardata.per;
+    chardata.permod = chardata.permod;
     characterCreation(3);
 });
 document.getElementById("perdecrease").addEventListener("click", function () {
-    if (per > 1) {
-        per -= 1;
-        permod = per - 5;
-        scorept += 1;
-        if (permod > intmod) {
-            breach = permod + luckbs;
+    if (chardata.per > 1) {
+        chardata.per -= 1;
+        chardata.permod = chardata.per - 5;
+        chardata.scorept += 1;
+        if (chardata.permod > chardata.intmod) {
+            chardata.breach = chardata.permod + chardata.luckbs;
         } else {
-            breach = intmod + luckbs;
+            chardata.breach = chardata.intmod + chardata.luckbs;
         }
-        if (permod > intmod) {
-            medicine = permod + luckbs;
+        if (chardata.permod > chardata.intmod) {
+            chardata.medicine = chardata.permod + chardata.luckbs;
         } else {
-            medicine = intmod + luckbs;
+            chardata.medicine = chardata.intmod + chardata.luckbs;
         }
-        energyweapons = permod + luckbs;
-        explosives = permod + luckbs;
-        pageNodes[3].medicine = medicine;
-        pageNodes[3].breach = breach;
-        pageNodes[3].energyweapons = energyweapons;
-        pageNodes[3].explosives = explosives;
-        pageNodes[3].scorept = scorept;
-        pageNodes[3].pernum = per;
-        pageNodes[3].permod = permod;
+        chardata.energyweapons = chardata.permod + chardata.luckbs;
+        chardata.explosives = chardata.permod + chardata.luckbs;
+        chardata.medicine = chardata.medicine;
+        chardata.breach = chardata.breach;
+        chardata.energyweapons = chardata.energyweapons;
+        chardata.explosives = chardata.explosives;
+        chardata.scorept = chardata.scorept;
+        chardata.pernum = chardata.per;
+        chardata.permod = chardata.permod;
         characterCreation(3);
     }
 });
 document.getElementById("endincrease").addEventListener("click", function () {
-    if (end < 10 && scorept > 0) {
-        end += 1;
-        endmod = end - 5;
-        scorept -= 1;
-        hp = endmod + 10;
-        hr = (level + end) / 2;
-        survival = endmod + luckbs;
-        pageNodes[3].survival = survival;
-        pageNodes[3].hp = hp;
-        pageNodes[3].hr = hr;
-        pageNodes[3].scorept = scorept;
+    if (chardata.end < 10 && chardata.scorept > 0) {
+        chardata.end += 1;
+        chardata.endmod = chardata.end - 5;
+        chardata.scorept -= 1;
+        chardata.hp = chardata.endmod + 10;
+        chardata.hr = (chardata.level + chardata.end) / 2;
+        chardata.radDC = 12 - chardata.endmod;
+        chardata.survival = chardata.endmod + chardata.luckbs;
+        chardata.hp = chardata.hp;
+        chardata.hr = chardata.hr;
+        chardata.scorept = chardata.scorept;
     }
-    pageNodes[3].endnum = end;
-    pageNodes[3].endmod = endmod;
+    chardata.endnum = chardata.end;
+    chardata.endmod = chardata.endmod;
     characterCreation(3);
 });
 document.getElementById("enddecrease").addEventListener("click", function () {
-    if (end > 1) {
-        end -= 1;
-        endmod = end - 5;
-        scorept += 1;
-        hp = endmod + 10;
-        hr = (level + end) / 2;
-        survival = endmod + luckbs;
-        pageNodes[3].survival = survival;
-        pageNodes[3].hp = hp;
-        pageNodes[3].hr = hr;
-        pageNodes[3].scorept = scorept;
-        pageNodes[3].endnum = end;
-        pageNodes[3].endmod = endmod;
+    if (chardata.end > 1) {
+        chardata.end -= 1;
+        chardata.endmod = chardata.end - 5;
+        chardata.scorept += 1;
+        chardata.hp = chardata.endmod + 10;
+        chardata.hr = (chardata.level + chardata.end) / 2;
+        chardata.radDC = 12 - chardata.endmod;
+        chardata.survival = chardata.endmod + chardata.luckbs;
+        chardata.survival = chardata.survival;
+        chardata.hp = chardata.hp;
+        chardata.hr = chardata.hr;
+        chardata.scorept = chardata.scorept;
+        chardata.endnum = chardata.end;
+        chardata.endmod = chardata.endmod;
         characterCreation(3);
     }
 });
 document.getElementById("chaincrease").addEventListener("click", function () {
-    if (cha < 10 && scorept > 0) {
-        cha += 1;
-        chamod = cha - 5;
-        scorept -= 1;
-        barter = chamod + luckbs;
-        if (strmod > chamod) {
-            intimidation = strmod + luckbs;
+    if (chardata.cha < 10 && chardata.scorept > 0) {
+        chardata.cha += 1;
+        chardata.chamod = chardata.cha - 5;
+        chardata.scorept -= 1;
+        chardata.barter = chardata.chamod + chardata.luckbs;
+        if (chardata.strmod > chardata.chamod) {
+            chardata.intimidation = chardata.strmod + chardata.luckbs;
         } else {
-            intimidation = chamod + luckbs;
+            chardata.intimidation = chardata.chamod + chardata.luckbs;
         }
-        speech = chamod + luckbs;
-        pageNodes[3].barter = barter;
-        pageNodes[3].intimidation = intimidation;
-        pageNodes[3].speech = speech;
-        pageNodes[3].scorept = scorept;
+        chardata.speech = chardata.chamod + chardata.luckbs;
+        chardata.barter = chardata.barter;
+        chardata.intimidation = chardata.intimidation;
+        chardata.speech = chardata.speech;
+        chardata.scorept = chardata.scorept;
     }
-    pageNodes[3].chanum = cha;
-    pageNodes[3].chamod = chamod;
+    chardata.chanum = chardata.cha;
+    chardata.chamod = chardata.chamod;
     characterCreation(3);
 });
 document.getElementById("chadecrease").addEventListener("click", function () {
-    if (cha > 1) {
-        cha -= 1;
-        chamod = cha - 5;
-        scorept += 1;
-        barter = chamod + luckbs;
-        if (strmod > chamod) {
-            intimidation = strmod + luckbs;
+    if (chardata.cha > 1) {
+        chardata.cha -= 1;
+        chardata.chamod = chardata.cha - 5;
+        chardata.scorept += 1;
+        chardata.barter = chardata.chamod + chardata.luckbs;
+        if (chardata.strmod > chardata.chamod) {
+            chardata.intimidation = chardata.strmod + chardata.luckbs;
         } else {
-            intimidation = chamod + luckbs;
+            chardata.intimidation = chardata.chamod + chardata.luckbs;
         }
-        speech = chamod + luckbs;
-        pageNodes[3].barter = barter;
-        pageNodes[3].intimidation = intimidation;
-        pageNodes[3].speech = speech;
-        pageNodes[3].scorept = scorept;
-        pageNodes[3].chanum = cha;
-        pageNodes[3].chamod = chamod;
+        chardata.speech = chardata.chamod + chardata.luckbs;
+        chardata.barter = chardata.barter;
+        chardata.intimidation = chardata.intimidation;
+        chardata.speech = chardata.speech;
+        chardata.scorept = chardata.scorept;
+        chardata.chanum = chardata.cha;
+        chardata.chamod = chardata.chamod;
         characterCreation(3);
     }
 });
 document.getElementById("intincrease").addEventListener("click", function () {
-    if (int < 10 && scorept > 0) {
-        int += 1;
-        intmod = int - 5;
-        scorept -= 1;
-        if (permod > intmod) {
-            breach = permod + luckbs;
+    if (chardata.int < 10 && chardata.scorept > 0) {
+        chardata.int += 1;
+        chardata.intmod = chardata.int - 5;
+        chardata.scorept -= 1;
+        chardata.crafting = chardata.intmod + chardata.luckbs;
+        if (chardata.permod > chardata.intmod) {
+            chardata.breach = chardata.permod + chardata.luckbs;
         } else {
-            breach = intmod + luckbs;
+            chardata.breach = chardata.intmod + chardata.luckbs;
         }
-        if (permod > intmod) {
-            medicine = permod + luckbs;
+        if (chardata.permod > chardata.intmod) {
+            chardata.medicine = chardata.permod + chardata.luckbs;
         } else {             
-            medicine = intmod + luckbs;
+            chardata.medicine = chardata.intmod + chardata.luckbs;
         }
-        science = intmod + luckbs;
-        pageNodes[3].science = science;
-        pageNodes[3].breach = breach;
-        pageNodes[3].medicine = medicine;
-        pageNodes[3].scorept = scorept;
+        chardata.science = chardata.intmod + chardata.luckbs;
+        chardata.crafting = chardata.crafting;
+        chardata.science = chardata.science;
+        chardata.breach = chardata.breach;
+        chardata.medicine = chardata.medicine;
+        chardata.scorept = chardata.scorept;
     }
-    pageNodes[3].intnum = int;
-    pageNodes[3].intmod = intmod;
+    chardata.intnum = chardata.int;
+    chardata.intmod = chardata.intmod;
     characterCreation(3);
 });
 document.getElementById("intdecrease").addEventListener("click", function () {
-    if (int > 1) {
-        int -= 1;
-        intmod = int - 5;
-        scorept += 1;
-        if (permod > intmod) {
-            breach = permod + luckbs;
+    if (chardata.int > 1) {
+        chardata.int -= 1;
+        chardata.intmod = chardata.int - 5;
+        chardata.scorept += 1;
+        chardata.crafting = chardata.intmod + chardata.luckbs;
+        if (chardata.permod > chardata.intmod) {
+            chardata.breach = chardata.permod + chardata.luckbs;
         } else {             
-            breach = intmod + luckbs;
+            chardata.breach = chardata.intmod + chardata.luckbs;
         }
-        if (permod > intmod) {
-            medicine = permod + luckbs;
+        if (chardata.permod > chardata.intmod) {
+            chardata.medicine = chardata.permod + chardata.luckbs;
         } else {             
-            medicine = intmod + luckbs;
+            chardata.medicine = chardata.intmod + chardata.luckbs;
         }
-        science = intmod + luckbs;
-        pageNodes[3].science = science;
-        pageNodes[3].breach = breach;
-        pageNodes[3].medicine = medicine;
-        pageNodes[3].scorept = scorept;
-        pageNodes[3].intnum = int;
-        pageNodes[3].intmod = intmod;
+        chardata.science = chardata.intmod + chardata.luckbs;
+        chardata.crafting = chardata.crafting;
+        chardata.science = chardata.science;
+        chardata.breach = chardata.breach;
+        chardata.medicine = chardata.medicine;
+        chardata.scorept = chardata.scorept;
+        chardata.intnum = chardata.int;
+        chardata.intmod = chardata.intmod;
         characterCreation(3);
     }
 });
 document.getElementById("agiincrease").addEventListener("click", function () {
-    if (agi < 10 && scorept > 0) {
-        agi += 1;
-        agimod = agi - 5;
-        scorept -= 1;
-        sp = agimod + 10;
-        ap = agimod + 10;
-        guns = agimod + luckbs;
-        sneak = agimod + luckbs;
-        pageNodes[3].guns = guns;
-        pageNodes[3].sneak = sneak;
-        pageNodes[3].hp = hp;
-        pageNodes[3].scorept = scorept;
-        pageNodes[3].sp = sp;
-        pageNodes[3].ap = ap;
+    if (chardata.agi < 10 && chardata.scorept > 0) {
+        chardata.agi += 1;
+        chardata.agimod = chardata.agi - 5;
+        chardata.scorept -= 1;
+        chardata.sp = chardata.agimod + 10;
+        chardata.ap = chardata.agimod + 10;
+        chardata.guns = chardata.agimod + chardata.luckbs;
+        chardata.sneak = chardata.agimod + chardata.luckbs;
+        chardata.hp = chardata.hp;
+        chardata.scorept = chardata.scorept;
+        chardata.sp = chardata.sp;
+        chardata.ap = chardata.ap;
     }
-    pageNodes[3].aginum = agi;
-    pageNodes[3].agimod = agimod;
+    chardata.aginum = chardata.agi;
+    chardata.agimod = chardata.agimod;
     characterCreation(3);
 });
 document.getElementById("agidecrease").addEventListener("click", function () {
-    if (agi > 1) {
-        agi -= 1;
-        agimod = agi - 5;
-        scorept += 1;
-        sp = agimod + 10;
-        ap = agimod + 10;
-        guns = agimod + luckbs;
-        sneak = agimod + luckbs;
-        pageNodes[3].guns = guns;
-        pageNodes[3].sneak = sneak;
-        pageNodes[3].hp = hp;
-        pageNodes[3].sp = sp;
-        pageNodes[3].ap = ap;
-        pageNodes[3].scorept = scorept;
-        pageNodes[3].aginum = agi;
-        pageNodes[3].agimod = agimod;
+    if (chardata.agi > 1) {
+        chardata.agi -= 1;
+        chardata.agimod = chardata.agi - 5;
+        chardata.scorept += 1;
+        chardata.sp = chardata.agimod + 10;
+        chardata.ap = chardata.agimod + 10;
+        chardata.guns = chardata.agimod + chardata.luckbs;
+        chardata.sneak = chardata.agimod + chardata.luckbs;
+        chardata.hp = chardata.hp;
+        chardata.sp = chardata.sp;
+        chardata.ap = chardata.ap;
+        chardata.scorept = chardata.scorept;
+        chardata.aginum = chardata.agi;
+        chardata.agimod = chardata.agimod;
         characterCreation(3);
     }
 });
 document.getElementById("lucincrease").addEventListener("click", function () {
-    if (luc < 10 && scorept > 0) {
-        luc += 1;
-        lucmod = luc - 5;
-        scorept -= 1;
-        luckbs = Math.floor(lucmod / 2);
-        barter = chamod + luckbs;
-        if ( permod > intmod) {
-             breach = permod + luckbs;
+    if (chardata.luc < 10 && chardata.scorept > 0) {
+        chardata.luc += 1;
+        chardata.lucmod = chardata.luc - 5;
+        chardata.scorept -= 1;
+        chardata.luckbs = Math.floor(chardata.lucmod / 2);
+        chardata.barter = chardata.chamod + chardata.luckbs;
+        if ( chardata.permod > chardata.intmod) {
+             chardata.breach = chardata.permod + chardata.luckbs;
         } else {
-             breach = intmod + luckbs;
+             chardata.breach = chardata.intmod + chardata.luckbs;
         }
-        energyweapons = permod + luckbs;
-        explosives = permod + luckbs;
-        guns = agimod + luckbs;
-        if (strmod > chamod) {
-             intimidation = strmod + luckbs;
+        chardata.energyweapons = chardata.permod + chardata.luckbs;
+        chardata.explosives = chardata.permod + chardata.luckbs;
+        chardata.guns = chardata.agimod + chardata.luckbs;
+        chardata.crafting = chardata.intmod + chardata.luckbs;
+        if (chardata.strmod > chardata.chamod) {
+             chardata.intimidation = chardata.strmod + chardata.luckbs;
         } else {
-            intimidation = chamod + luckbs;
+            chardata.intimidation = chardata.chamod + chardata.luckbs;
         }
-        if (permod > intmod) {
-             medicine = permod + luckbs;
+        if (chardata.permod > chardata.intmod) {
+             chardata.medicine = chardata.permod + chardata.luckbs;
         } else {
-            medicine = intmod + luckbs;
+            chardata.medicine = chardata.intmod + chardata.luckbs;
         }
-        melee = strmod + luckbs;
-        science = intmod + luckbs;
-        sneak = agimod + luckbs;
-        speech = chamod + luckbs;
-        survival = endmod + luckbs;
-        unarmed = strmod +luckbs;
-        pageNodes[3].barter = barter;
-        pageNodes[3].breach = breach;
-        pageNodes[3].energyweapons = energyweapons;
-        pageNodes[3].explosives = explosives;
-        pageNodes[3].guns = guns;
-        pageNodes[3].intimidation = intimidation;
-        pageNodes[3].medicine = medicine;
-        pageNodes[3].melee = melee;
-        pageNodes[3].science = science;
-        pageNodes[3].sneak = sneak;
-        pageNodes[3].speech = speech;
-        pageNodes[3].survival = survival;
-        pageNodes[3].unarmed = unarmed;
-        pageNodes[3].scorept = scorept;
+        chardata.melee = chardata.strmod + chardata.luckbs;
+        chardata.science = chardata.intmod + chardata.luckbs;
+        chardata.sneak = chardata.agimod + chardata.luckbs;
+        chardata.speech = chardata.chamod + chardata.luckbs;
+        chardata.survival = chardata.endmod + chardata.luckbs;
+        chardata.unarmed = chardata.strmod +chardata.luckbs;
+        chardata.crafting = chardata.crafting;
+        chardata.barter = chardata.barter;
+        chardata.breach = chardata.breach;
+        chardata.energyweapons = chardata.energyweapons;
+        chardata.explosives = chardata.explosives;
+        chardata.guns = chardata.guns;
+        chardata.intimidation = chardata.intimidation;
+        chardata.medicine = chardata.medicine;
+        chardata.melee = chardata.melee;
+        chardata.science = chardata.science;
+        chardata.sneak = chardata.sneak;
+        chardata.speech = chardata.speech;
+        chardata.survival = chardata.survival;
+        chardata.unarmed = chardata.unarmed;
+        chardata.scorept = chardata.scorept;
     }
-    pageNodes[3].lucnum = luc;
-    pageNodes[3].lucmod = lucmod;
+    chardata.lucnum = chardata.luc;
+    chardata.lucmod = chardata.lucmod;
     characterCreation(3);
 });
 document.getElementById("lucdecrease").addEventListener("click", function () {
-    if (luc > 1) {
-        luc -= 1;
-        lucmod = luc - 5;
-        scorept += 1;
-        luckbs = Math.ceil(lucmod / 2);
-        barter = chamod + luckbs;
-        if ( permod > intmod) {
-             breach = permod + luckbs;
+    if (chardata.luc > 1) {
+        chardata.luc -= 1;
+        chardata.lucmod = chardata.luc - 5;
+        chardata.scorept += 1;
+        chardata.luckbs = Math.ceil(chardata.lucmod / 2);
+        chardata.barter = chardata.chamod + chardata.luckbs;
+        if ( chardata.permod > chardata.intmod) {
+             chardata.breach = chardata.permod + chardata.luckbs;
         } else {
-             breach = intmod + luckbs;
+             chardata.breach = chardata.intmod + chardata.luckbs;
         }
-        energyweapons = permod + luckbs;
-        explosives = permod + luckbs;
-        guns = agimod + luckbs;
-        if (strmod > chamod) {
-             intimidation = strmod + luckbs;
+        chardata.energyweapons = chardata.permod + chardata.luckbs;
+        chardata.explosives = chardata.permod + chardata.luckbs;
+        chardata.guns = chardata.agimod + chardata.luckbs;
+        if (chardata.strmod > chardata.chamod) {
+             chardata.intimidation = chardata.strmod + chardata.luckbs;
         } else {
-            intimidation = chamod + luckbs;
+            chardata.intimidation = chardata.chamod + chardata.luckbs;
         }
-        if (permod > intmod) {
-             medicine = permod + luckbs;
+        if (chardata.permod > chardata.intmod) {
+             chardata.medicine = chardata.permod + chardata.luckbs;
         } else {
-            medicine = intmod + luckbs;
+            chardata.medicine = chardata.intmod + chardata.luckbs;
         }
-        melee = strmod + luckbs;
-        science = intmod + luckbs;
-        sneak = agimod + luckbs;
-        speech = chamod + luckbs;
-        survival = endmod + luckbs;
-        unarmed = strmod +luckbs;
-        pageNodes[3].barter = barter;
-        pageNodes[3].breach = breach;
-        pageNodes[3].energyweapons = energyweapons;
-        pageNodes[3].explosives = explosives;
-        pageNodes[3].guns = guns;
-        pageNodes[3].intimidation = intimidation;
-        pageNodes[3].medicine = medicine;
-        pageNodes[3].melee = melee;
-        pageNodes[3].science = science;
-        pageNodes[3].sneak = sneak;
-        pageNodes[3].speech = speech;
-        pageNodes[3].survival = survival;
-        pageNodes[3].unarmed = unarmed;
-        pageNodes[3].scorept = scorept;
-        pageNodes[3].lucnum = luc;
-        pageNodes[3].lucmod = lucmod;
+        chardata.melee = chardata.strmod + chardata.luckbs;
+        chardata.science = chardata.intmod + chardata.luckbs;
+        chardata.sneak = chardata.agimod + chardata.luckbs;
+        chardata.speech = chardata.chamod + chardata.luckbs;
+        chardata.survival = chardata.endmod + chardata.luckbs;
+        chardata.unarmed = chardata.strmod + chardata.luckbs;
+        chardata.crafting = chardata.intmod + chardata.luckbs;
+        chardata.barter = chardata.chamod + chardata.luckbs;
+        chardata.breach = chardata.permod + chardata.luckbs;
+        chardata.guns = chardata.agimod + chardata.luckbs;
+        chardata.intimidation = chardata.strmod + chardata.luckbs;
+        chardata.medicine = chardata.permod + chardata.luckbs;
+        chardata.melee = chardata.strmod + chardata.luckbs;
+        chardata.science = chardata.intmod + chardata.luckbs;
+        chardata.sneak = chardata.agimod + chardata.luckbs;
+        chardata.speech = chardata.chamod + chardata.luckbs;
+        chardata.survival = chardata.endmod + chardata.luckbs;
+        chardata.unarmed = chardata.strmod + chardata.luckbs;
+        chardata.scorept = chardata.scorept;
+        chardata.lucnum = chardata.luc;
+        chardata.lucmod = chardata.lucmod;
         characterCreation(3);
     }
 });
