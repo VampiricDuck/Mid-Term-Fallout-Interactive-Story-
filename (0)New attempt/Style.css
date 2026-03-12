@@ -484,3 +484,13 @@ button,
   background: rgba(0, 0, 0, 0.92);
   padding: 14px;
 }
+
+/* Ensure #sceneRoot itself is not permanently animated */
+#sceneRoot {
+  animation: none !important;
+}
+
+/* Play on each newly-created scene wrapper */
+.scene-shell {
+  overflow: hidden;
+}

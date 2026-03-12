@@ -141,6 +141,27 @@ function wireSystemOverlay(wrapper) {
   });
 }
 
+const SCENE_ENTER_MS = 5000; // transition speed after startup
+let isFirstRender = true;    // track initial boot render
+
+function runSceneLoadingAnimation(targetEl) {
+  if (!targetEl) return;
+
+  targetEl.getAnimations().forEach((a) => a.cancel());
+
+  targetEl.animate(
+    [
+      { clipPath: "inset(0 0 100% 0)", opacity: 0.75 },
+      { clipPath: "inset(0 0 0% 0)", opacity: 1 }
+    ],
+    {
+      duration: SCENE_ENTER_MS,
+      easing: "linear",
+      fill: "none"
+    }
+  );
+}
+
 // Main render function called at startup and every state change.
 function render() {
   const { scene } = getState();
@@ -153,19 +174,23 @@ function render() {
     return;
   }
 
-  // Build shell and render scene inside sceneContent.
   const { wrapper, content } = buildSceneShell(scene);
   sceneRoot.appendChild(wrapper);
 
-  // Add system overlay only outside main menu.
   if (scene !== "mainMenu") {
     const overlay = buildSystemOverlay();
     wrapper.appendChild(overlay);
     wireSystemOverlay(wrapper);
   }
 
-  // Render actual scene body.
   renderer(content, api);
+
+  // Skip JS scene animation on first load (CSS boot animation already running).
+  if (isFirstRender) {
+    isFirstRender = false;
+  } else {
+    runSceneLoadingAnimation(wrapper);
+  }
 }
 
 // Subscribe render() so every state update redraws UI.
