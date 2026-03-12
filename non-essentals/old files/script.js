@@ -42,12 +42,13 @@ chardata.equipment = [
         {id: "6", name: "caps", type: "currency", amount: 50},
 ];
 // skills //
+chardata.luckbs = Math.floor(chardata.lucmod / 2)
 chardata.barter = chardata.chamod;
 chardata.breach = function() {
     if (chardata.permod > chardata.chamod) {
-        return chardata.permod;
+        return chardata.permod + chardata.luckbs;
     } else {
-        return chardata.chamod;
+        return chardata.chamod + chardata.luckbs;
 }
 };
 chardata.crafting = chardata.intmod;
@@ -56,16 +57,16 @@ chardata.explosives = chardata.permod;
 chardata.guns = chardata.agimod;
 chardata.intimidation = function() {
     if (chardata.strmod > chardata.chamod) {
-        return chardata.strmod;
+            return chardata.strmod + chardata.luckbs;
         } else {
-            return chardata.chamod;
+            return chardata.chamod + chardata.luckbs;
         }
     };
 chardata.medicine = function() {
         if (chardata.permod > chardata.intmod) {
-            return chardata.permod;
+            return chardata.permod + chardata.luckbs;
         } else {
-            return chardata.intmod;
+            return chardata.intmod + chardata.luckbs;
         }
     };
 chardata.melee = chardata.strmod;
@@ -73,10 +74,10 @@ chardata.science = chardata.intmod;
 chardata.sneak = chardata.agimod;
 chardata.speech = chardata.chamod;
 chardata.survival = chardata.endmod;
-chardata.unarmed = chardata.strmod,
-chardata.luckbs = Math.floor(chardata.lucmod / 2)
+chardata.unarmed = chardata.strmod;
+// end of character data //
 
-// constant holding the nodes //
+// constant holding the nodes for the pages //
 const pageNodes = [
     combat0 = {
 
@@ -96,12 +97,18 @@ const pageNodes = [
     },
 ];
 
-// items and equipment found in game //
-const itemrep = [
-    items= {
-
+//function to create and deleate html data to fit the given index value
+function pageCreation(index) {
+    if (index === 0) {
+    } else if (index === 1) {
+    } else if (index === 2) {
+    } else if (index === 3) {
+    
     }
-];
+}
+
+
+//function to fill and update the character creation form//
 function characterCreation(index) {
     document.getElementById("logo-v").src = pageNodes[index].img
     document.getElementById("scorept").textContent = "POINTS REMAINING: " + chardata.scorept
@@ -121,7 +128,7 @@ function characterCreation(index) {
     if (chardata.breach < 0) {
         document.getElementById("breach").textContent = "BREACH: " + chardata.breach()
     } else {
-    document.getElementById("breach").textContent = "BREACH: " + "+" + chardata.breach}
+    document.getElementById("breach").textContent = "BREACH: " + "+" + chardata.breach()}
     if (chardata.crafting < 0) {
         document.getElementById("crafting").textContent = "CRAFTING: " + chardata.crafting
     } else {
@@ -139,13 +146,13 @@ function characterCreation(index) {
     } else {
         document.getElementById("guns").textContent = "GUNS: " + "+" + chardata.guns}
     if (chardata.intimidation < 0) {
-        document.getElementById("intimidation").textContent = "INTIMIDATION: " + chardata.intimidation
+        document.getElementById("intimidation").textContent = "INTIMIDATION: " + chardata.intimidation()
     } else {
-        document.getElementById("intimidation").textContent = "INTIMIDATION: " + "+" + chardata.intimidation}
+        document.getElementById("intimidation").textContent = "INTIMIDATION: " + "+" + chardata.intimidation()}
     if (chardata.medicine < 0) {
-        document.getElementById("medicine").textContent = "MEDICINE: " + chardata.medicine
+        document.getElementById("medicine").textContent = "MEDICINE: " + chardata.medicine()
     } else {
-        document.getElementById("medicine").textContent = "MEDICINE: " + "+" + chardata.medicine}
+        document.getElementById("medicine").textContent = "MEDICINE: " + "+" + chardata.medicine()}
     if (chardata.melee < 0) {
         document.getElementById("melee").textContent = "MELEE: " + chardata.melee
     } else {
@@ -200,6 +207,7 @@ function characterCreation(index) {
         document.getElementById("luck").textContent = "LUCK: " + chardata.luc + " >> " + "Modifier " + "+" + chardata.lucmod}
 }
 characterCreation(3)
+pageCreation(3)
 document.getElementById("malebutton").addEventListener("click", function () {
     sex = "M"
     chardata.sex = sex
@@ -221,11 +229,6 @@ document.getElementById("strincrease").addEventListener("click", function () {
         chardata.str += 1;
         chardata.strmod = chardata.str - 5;
         chardata.scorept -= 1;
-        if (chardata.strmod > chardata.chamod) {
-            chardata.intimidation = chardata.strmod + chardata.luckbs;
-        } else {
-            chardata.intimidation = chardata.chamod + chardata.luckbs;
-        }
         chardata.melee = chardata.strmod + chardata.luckbs;
         chardata.unarmed = chardata.strmod + chardata.luckbs;
         chardata.scorept = chardata.scorept;
@@ -239,11 +242,6 @@ document.getElementById("strdecrease").addEventListener("click", function () {
         chardata.str -= 1;
         chardata.strmod = chardata.str - 5;
         chardata.scorept += 1;
-        if (chardata.strmod > chardata.chamod) {
-            chardata.intimidation = chardata.strmod + chardata.luckbs;
-        } else {
-            chardata.intimidation = chardata.chamod + chardata.luckbs;
-        }
         chardata.melee = chardata.strmod + chardata.luckbs;
         chardata.unarmed = chardata.strmod + chardata.luckbs;
         chardata.intimidation = chardata.intimidation;
@@ -260,16 +258,6 @@ document.getElementById("perincrease").addEventListener("click", function () {
         chardata.per += 1;
         chardata.permod = chardata.per - 5;
         chardata.scorept -= 1;
-        if (chardata.permod > chardata.intmod) {
-            chardata.breach = chardata.permod + chardata.luckbs;
-        } else {            
-            chardata.breach = chardata.intmod + chardata.luckbs;
-        }
-        if (chardata.permod > chardata.intmod) {
-            chardata.medicine = chardata.permod + chardata.luckbs;
-        } else {
-            chardata.medicine = chardata.intmod + chardata.luckbs;
-        }
         chardata.energyweapons = chardata.permod + chardata.luckbs;
         chardata.explosives = chardata.permod + chardata.luckbs;
         chardata.medicine = chardata.medicine;
@@ -287,16 +275,6 @@ document.getElementById("perdecrease").addEventListener("click", function () {
         chardata.per -= 1;
         chardata.permod = chardata.per - 5;
         chardata.scorept += 1;
-        if (chardata.permod > chardata.intmod) {
-            chardata.breach = chardata.permod + chardata.luckbs;
-        } else {
-            chardata.breach = chardata.intmod + chardata.luckbs;
-        }
-        if (chardata.permod > chardata.intmod) {
-            chardata.medicine = chardata.permod + chardata.luckbs;
-        } else {
-            chardata.medicine = chardata.intmod + chardata.luckbs;
-        }
         chardata.energyweapons = chardata.permod + chardata.luckbs;
         chardata.explosives = chardata.permod + chardata.luckbs;
         chardata.medicine = chardata.medicine;
@@ -350,11 +328,6 @@ document.getElementById("chaincrease").addEventListener("click", function () {
         chardata.chamod = chardata.cha - 5;
         chardata.scorept -= 1;
         chardata.barter = chardata.chamod + chardata.luckbs;
-        if (chardata.strmod > chardata.chamod) {
-            chardata.intimidation = chardata.strmod + chardata.luckbs;
-        } else {
-            chardata.intimidation = chardata.chamod + chardata.luckbs;
-        }
         chardata.speech = chardata.chamod + chardata.luckbs;
         chardata.barter = chardata.barter;
         chardata.intimidation = chardata.intimidation;
@@ -371,11 +344,6 @@ document.getElementById("chadecrease").addEventListener("click", function () {
         chardata.chamod = chardata.cha - 5;
         chardata.scorept += 1;
         chardata.barter = chardata.chamod + chardata.luckbs;
-        if (chardata.strmod > chardata.chamod) {
-            chardata.intimidation = chardata.strmod + chardata.luckbs;
-        } else {
-            chardata.intimidation = chardata.chamod + chardata.luckbs;
-        }
         chardata.speech = chardata.chamod + chardata.luckbs;
         chardata.barter = chardata.barter;
         chardata.intimidation = chardata.intimidation;
@@ -392,16 +360,6 @@ document.getElementById("intincrease").addEventListener("click", function () {
         chardata.intmod = chardata.int - 5;
         chardata.scorept -= 1;
         chardata.crafting = chardata.intmod + chardata.luckbs;
-        if (chardata.permod > chardata.intmod) {
-            chardata.breach = chardata.permod + chardata.luckbs;
-        } else {
-            chardata.breach = chardata.intmod + chardata.luckbs;
-        }
-        if (chardata.permod > chardata.intmod) {
-            chardata.medicine = chardata.permod + chardata.luckbs;
-        } else {             
-            chardata.medicine = chardata.intmod + chardata.luckbs;
-        }
         chardata.science = chardata.intmod + chardata.luckbs;
         chardata.crafting = chardata.crafting;
         chardata.science = chardata.science;
@@ -419,16 +377,6 @@ document.getElementById("intdecrease").addEventListener("click", function () {
         chardata.intmod = chardata.int - 5;
         chardata.scorept += 1;
         chardata.crafting = chardata.intmod + chardata.luckbs;
-        if (chardata.permod > chardata.intmod) {
-            chardata.breach = chardata.permod + chardata.luckbs;
-        } else {             
-            chardata.breach = chardata.intmod + chardata.luckbs;
-        }
-        if (chardata.permod > chardata.intmod) {
-            chardata.medicine = chardata.permod + chardata.luckbs;
-        } else {             
-            chardata.medicine = chardata.intmod + chardata.luckbs;
-        }
         chardata.science = chardata.intmod + chardata.luckbs;
         chardata.crafting = chardata.crafting;
         chardata.science = chardata.science;
@@ -483,25 +431,10 @@ document.getElementById("lucincrease").addEventListener("click", function () {
         chardata.scorept -= 1;
         chardata.luckbs = Math.floor(chardata.lucmod / 2);
         chardata.barter = chardata.chamod + chardata.luckbs;
-        if ( chardata.permod > chardata.intmod) {
-             chardata.breach = chardata.permod + chardata.luckbs;
-        } else {
-             chardata.breach = chardata.intmod + chardata.luckbs;
-        }
         chardata.energyweapons = chardata.permod + chardata.luckbs;
         chardata.explosives = chardata.permod + chardata.luckbs;
         chardata.guns = chardata.agimod + chardata.luckbs;
         chardata.crafting = chardata.intmod + chardata.luckbs;
-        if (chardata.strmod > chardata.chamod) {
-             chardata.intimidation = chardata.strmod + chardata.luckbs;
-        } else {
-            chardata.intimidation = chardata.chamod + chardata.luckbs;
-        }
-        if (chardata.permod > chardata.intmod) {
-             chardata.medicine = chardata.permod + chardata.luckbs;
-        } else {
-            chardata.medicine = chardata.intmod + chardata.luckbs;
-        }
         chardata.melee = chardata.strmod + chardata.luckbs;
         chardata.science = chardata.intmod + chardata.luckbs;
         chardata.sneak = chardata.agimod + chardata.luckbs;
@@ -535,24 +468,9 @@ document.getElementById("lucdecrease").addEventListener("click", function () {
         chardata.scorept += 1;
         chardata.luckbs = Math.ceil(chardata.lucmod / 2);
         chardata.barter = chardata.chamod + chardata.luckbs;
-        if ( chardata.permod > chardata.intmod) {
-             chardata.breach = chardata.permod + chardata.luckbs;
-        } else {
-             chardata.breach = chardata.intmod + chardata.luckbs;
-        }
         chardata.energyweapons = chardata.permod + chardata.luckbs;
         chardata.explosives = chardata.permod + chardata.luckbs;
         chardata.guns = chardata.agimod + chardata.luckbs;
-        if (chardata.strmod > chardata.chamod) {
-             chardata.intimidation = chardata.strmod + chardata.luckbs;
-        } else {
-            chardata.intimidation = chardata.chamod + chardata.luckbs;
-        }
-        if (chardata.permod > chardata.intmod) {
-             chardata.medicine = chardata.permod + chardata.luckbs;
-        } else {
-            chardata.medicine = chardata.intmod + chardata.luckbs;
-        }
         chardata.melee = chardata.strmod + chardata.luckbs;
         chardata.science = chardata.intmod + chardata.luckbs;
         chardata.sneak = chardata.agimod + chardata.luckbs;
@@ -577,3 +495,4 @@ document.getElementById("lucdecrease").addEventListener("click", function () {
         characterCreation(3);
     }
 });
+// end of character creation page //

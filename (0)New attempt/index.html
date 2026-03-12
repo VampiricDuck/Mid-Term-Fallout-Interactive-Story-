@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /> <!-- Character encoding -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" /> <!-- Mobile scaling -->
+  <title>Fallout Interactive Story</title> <!-- Browser tab title -->
+  <link rel="stylesheet" href="style.css" /> <!-- Your terminal CSS -->
+</head>
+<body>
+  <div class="overlay"></div> <!-- Visual noise/scan effect layer -->
+  <div class="scanline"></div> <!-- Scanline effect layer -->
+
+  <main class="wrapper"> <!-- Main page shell -->
+    <section class="content" id="app"> <!-- Styled content area -->
+      <div id="sceneRoot"></div> <!-- JS replaces this with each scene -->
+    </section>
+  </main>
+
+  <script type="module" src="./src/app.js"></script> <!-- App entry point -->
+</body>
+</html>
