@@ -16,6 +16,6 @@ export function renderIntro(root, api) {
 
   continueBtn?.addEventListener("click", () => {
     api.patchStory({ introSeen: true }); // Mark intro complete.
-//    api.setScene("characterCreation"); // Move forward.
+    api.setScene("characterCreation"); // Move forward.
   });
 }

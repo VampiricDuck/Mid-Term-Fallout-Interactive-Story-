@@ -1,0 +1,443 @@
+/* ----------------------------------------------------------------------------------------------------------------------------------------------------- */
+/* css and inital html structure yoinked form https://gist.github.com/killswitch-GUI/2ba058afa544c29e94364c0546bbf178 thank you stranger on the internet */
+/* ----------------------------------------------------------------------------------------------------------------------------------------------------- */
+
+@import url(https://fonts.googleapis.com/css?family=VT323);
+
+/* ── Keyframes ── */
+@keyframes scroll {
+  0%   { height: 0; }
+  100% { height: 100%; }
+}
+@keyframes type {
+  from { width: 0; }
+}
+@keyframes type2 {
+  0%   { width: 0; }
+  50%  { width: 0; }
+  100% { width: 100; }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.75; } /* barely noticeable */
+}
+@keyframes scan {
+  from { top: 0; }
+  to   { top: 100%; }
+}
+@keyframes flicker {
+  0%   { opacity: 0.15795 }
+  5%   { opacity: 0.31511 }
+  10%  { opacity: 0.94554 }
+  15%  { opacity: 0.2469  }
+  20%  { opacity: 0.62031 }
+  25%  { opacity: 0.0293  }
+  30%  { opacity: 0.00899 }
+  35%  { opacity: 0.5344  }
+  40%  { opacity: 0.12778 }
+  45%  { opacity: 0.52042 }
+  50%  { opacity: 0.3823  }
+  55%  { opacity: 0.2198  }
+  60%  { opacity: 0.9383  }
+  65%  { opacity: 0.86615 }
+  70%  { opacity: 0.68695 }
+  75%  { opacity: 0.55749 }
+  80%  { opacity: 0.96984 }
+  85%  { opacity: 0.0361  }
+  90%  { opacity: 0.24467 }
+  95%  { opacity: 0.08351 }
+  100% { opacity: 0.54813 }
+}
+
+/* ── Reset ── */
+::-webkit-scrollbar { display: none; }
+* { box-sizing: border-box; }
+
+/* ── Base ── */
+html, body {
+  background: #383838;
+  color: #00dd00;
+  font-size: 1.4em;
+  font-family: 'VT323', Courier;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: normal;
+  margin: 0;
+  text-transform: uppercase;
+}
+h4 b { color: white; }
+
+a { color: white; text-decoration: none; }
+a:hover { color: red; }
+
+p { line-height: 100%; margin: 0; }
+
+/* subtle blink on spans */
+span {
+  animation: blink 3s ease-in-out infinite;
+}
+
+ul { list-style: none; }
+
+ul a:before, p a:before { color: #00dd00; content: ' [ '; }
+ul a:after,  p a:after  { color: #00dd00; content: ' ] '; }
+
+/* ── Layout ── */
+header.site { margin: 0 0 40px 0; text-transform: uppercase; }
+
+nav.site {
+  margin: 0 0 40px 0;
+  position: relative;
+  width: 100%;
+  z-index: 10;
+}
+nav.site ul { padding: 0; }
+nav.site ul li {
+  display: inline-block;
+  padding: 0 10px;
+  min-width: 250px;
+  width: auto;
+}
+
+.col { float: left; padding: 0 20px; }
+.col.two { width: auto; }
+.clear { clear: both; }
+.clearfix { overflow: auto; zoom: 1; }
+.upper { text-transform: uppercase; }
+
+/* ── Scene layers ── */
+#sceneRoot,
+.scene-shell,
+.wrapper,
+.content {
+  position: relative;
+  z-index: 1;
+}
+
+/* wrapper + content boot animations */
+.wrapper {
+  animation: scroll 5s 1;
+  margin: 0;
+  overflow: hidden;
+  padding: 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.content {
+  animation: scroll 3s 1;
+  overflow: hidden;
+  padding: 40px;
+  position: relative;
+  width: 95%;
+}
+
+/* kill any persistent animation on sceneRoot itself */
+#sceneRoot { animation: none !important; }
+
+/* scene shell clips enter animation */
+.scene-shell { overflow: hidden; }
+
+/* top bar (inventory + system buttons) */
+.scene-topbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+/* ── CRT overlay effects — above UI, non-interactive ── */
+.overlay {
+  height: 1px;
+  position: absolute;
+  top: 0; left: 0;
+  width: 1px;
+}
+.overlay:before {
+  background:
+    linear-gradient(#101010 50%, rgba(16,16,16,0.2) 50%),
+    linear-gradient(90deg, rgba(255,0,0,0.03), rgba(0,255,0,0.02), rgba(0,0,255,0.03));
+  background-size: 100% 3px, 6px 100%;
+  content: "";
+  display: block;
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+}
+.overlay:after {
+  animation: flicker 0.30s infinite;
+  background: rgba(16,16,16,0.2);
+  content: "";
+  display: block;
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+}
+
+.scanline {
+  animation: scroll 10s 5s infinite;
+  background: linear-gradient(to bottom, rgba(0,221,0,0) 0%, rgba(0,221,0,1) 50%, rgba(0,221,0,0) 100%);
+  display: block;
+  height: 20px;
+  opacity: 0.05;
+  position: fixed;
+  left: 0; right: 0;
+  top: -5%;
+  z-index: 50;
+}
+
+.overlay,
+.scanline,
+.overlay::before,
+.overlay::after,
+.scanline::before,
+.scanline::after {
+  pointer-events: none !important;
+}
+
+/* ── Buttons ── */
+button,
+input[type="button"],
+input[type="submit"],
+a.button {
+  background: transparent;
+  border: 1px solid #00dd00;
+  color: #00dd00;
+  cursor: pointer;
+  display: inline-block;
+  font-family: 'VT323', Courier;
+  font-size: 0.75rem;
+  opacity: 0.6;            /* was 0.25 — readable without hover */
+  padding: 3px 8px;
+  pointer-events: auto;
+  position: relative;
+  text-decoration: none;
+  text-transform: uppercase;
+  z-index: 10;
+  vertical-align: middle;
+  clear: none;
+}
+
+button:hover,
+input[type="button"]:hover,
+input[type="submit"]:hover,
+a.button:hover {
+  background: #00dd00;
+  color: #383838;
+  opacity: 1;              /* full brightness on hover */
+}
+
+input[type=text]:focus,
+textarea:focus,
+input[type=submit]:focus,
+a.button:focus { outline: 0; }
+
+/* ── Forms ── */
+label {
+  clear: left;
+  display: block;
+  float: left;
+  margin-right: 10px;
+  padding-top: 5px;
+}
+
+input[type=text],
+textarea {
+  background: transparent;
+  border: none;
+  color: #00dd00;
+  display: block;
+  float: left;
+  font-family: 'VT323', Courier;
+  font-size: 1.2em;
+  position: relative;
+  width: 80%;
+  z-index: 10;
+}
+
+textarea {
+  margin-bottom: 20px;
+  overflow: auto;
+  resize: none;
+}
+
+/* ── Images ── */
+#logo-v {
+  display: block;
+  height: auto;
+  margin: 0 auto;
+  width: 200px;
+}
+img.pip-hero {
+  display: block;
+  float: left;
+  height: auto;
+  margin: 5px 10px 5px 0;
+  width: 120px;
+}
+
+/* ── System overlay ── */
+#systemOverlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.55);
+  z-index: 200;
+  pointer-events: auto;
+}
+#systemOverlay.open { display: flex; }
+#systemOverlay .system-panel {
+  width: min(560px, 90vw);
+  border: 1px solid #00ff7f;
+  background: rgba(0,0,0,0.92);
+  padding: 14px;
+}
+
+/* ── Inventory overlay ── */
+#inventoryOverlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.55);
+  z-index: 210;
+  pointer-events: auto;
+}
+#inventoryOverlay.open { display: flex; }
+.inventory-panel {
+  width: min(700px, 92vw);
+  max-height: 80vh;
+  overflow-y: auto;
+  border: 1px solid #00dd00;
+  background: rgba(0,0,0,0.92);
+  padding: 12px;
+}
+.inv-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 6px 0;
+}
+
+/* ── Character creation ── */
+
+/* special rows: flex align label + buttons */
+.scene-character-create .special-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+  clear: both;
+}
+
+/* reset label inside special rows only */
+.scene-character-create .special-row label {
+  display: inline;
+  float: none;
+  clear: none;
+  margin-right: 6px;
+  padding-top: 0;
+  min-width: 140px;   /* keeps all stat labels same width so buttons line up */
+}
+
+/* special row buttons stay small */
+.scene-character-create .special-row input[type="button"] {
+  font-size: 0.75rem;
+  padding: 4px 6px;
+  opacity: 0.65;
+  margin: 0;
+  clear: none;
+  float: none;
+}
+
+/* sex + name rows stay block as normal — do NOT touch their labels */
+.scene-character-create .continue-row {
+  clear: both;
+  display: block;
+  margin-top: 32px;
+  text-align: left;
+}
+
+.scene-character-create #skills,
+.scene-character-create ul {
+  margin-bottom: 18px;
+}
+
+/* small, scoped fix: only SPECIAL rows */
+.scene-character-create .stat-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 2px 0;
+}
+
+.scene-character-create .stat-row > label {
+  float: none;
+  clear: none;
+  display: inline-block;
+  min-width: 260px; /* keeps +/- next to correct stat */
+  margin: 0;
+  padding: 0;
+}
+
+.scene-character-create .stat-row > input[type="button"] {
+  margin: 0;
+  padding: 1px 6px;
+  line-height: 1;
+}
+
+/* Item detail modal */
+#itemDetailModal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.55);
+  z-index: 999;
+  pointer-events: auto;
+}
+#itemDetailModal.open { display: flex; }
+
+.item-detail-panel {
+  width: min(500px, 90vw);
+  max-height: 70vh;
+  overflow-y: auto;
+  border: 1px solid #00ff00;
+  background: rgba(0,0,0,0.92);
+  padding: 12px;
+}
+
+.item-detail-panel h3 {
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.item-detail-panel p {
+  margin: 4px 0;
+  font-size: 1.1em;
+}
+
+.prop-tag {
+  cursor: pointer;
+  color: #00ff00;
+  text-decoration: underline dotted;
+}
+.prop-tag:hover {
+  color: #ffffff;
+}
+.prop-desc {
+  margin: 2px 0 4px 12px;
+  font-size: 0.95em;
+  color: #aaffaa;
+  border-left: 2px solid #00ff00;
+  padding-left: 6px;
+}

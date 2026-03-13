@@ -13,9 +13,15 @@ import {
 // Import scene renderers.
 import { renderMainMenu } from "./scenes/mainmenu.js";
 import { renderIntro } from "./scenes/intro.js";
-// import { renderCharacterCreation } from "./scenes/characterCreation.js";
+import { renderCharacterCreate } from "./scenes/charactercreate.js";
+import { renderLevelUp } from "./scenes/levelup.js";
+import { renderGameOver } from "./scenes/gameover.js";
+import { renderCombat } from "./scenes/combat.js";
 // import { renderGameplay } from "./scenes/gameplay.js";
-// import { renderCombat } from "./scenes/combat.js";
+
+// Import UI overlays.
+import { mountInventoryOverlay } from "./ui/inventoryOverlay.js"; // add this
+import { recalculatePlayerStats } from "./utils/leveling.js";
 
 // Grab the dynamic mount point from HTML.
 const sceneRoot = document.getElementById("sceneRoot");
@@ -23,10 +29,10 @@ const sceneRoot = document.getElementById("sceneRoot");
 // Map state.scene names to their renderer functions.
 const sceneMap = {
   mainMenu: renderMainMenu,
-  intro: renderIntro
-  // characterCreation: renderCharacterCreation,
-  // gameplay: renderGameplay,
-  // combat: renderCombat
+  intro: renderIntro,
+  characterCreation: renderCharacterCreate,
+  levelup: renderLevelUp,
+  combat: renderCombat
 };
 
 // Tools passed into every scene so scenes can change state.
@@ -49,7 +55,10 @@ function buildSceneShell(activeScene) {
   if (activeScene !== "mainMenu") {
     const topBar = document.createElement("div");
     topBar.className = "scene-topbar";
-    topBar.innerHTML = `<button id="systemBtn">[ SYSTEM ]</button>`;
+    topBar.innerHTML = `
+      <button id="inventoryBtn">[ INVENTORY ]</button>
+      <button id="systemBtn">[ SYSTEM ]</button>
+    `;
     wrapper.appendChild(topBar);
   }
 
@@ -163,38 +172,48 @@ function runSceneLoadingAnimation(targetEl) {
 }
 
 // Main render function called at startup and every state change.
-function render() {
-  const { scene } = getState();
-  const renderer = sceneMap[scene];
+function render(root, api) {
+  if (!root) return;
 
-  sceneRoot.replaceChildren();
+  root.replaceChildren();
 
-  if (!renderer) {
-    sceneRoot.textContent = `Scene not found: ${scene}`;
-    return;
-  }
-
-  const { wrapper, content } = buildSceneShell(scene);
-  sceneRoot.appendChild(wrapper);
-
-  if (scene !== "mainMenu") {
-    const overlay = buildSystemOverlay();
-    wrapper.appendChild(overlay);
-    wireSystemOverlay(wrapper);
-  }
-
-  renderer(content, api);
+  const scene = api.getState().scene;
 
   // Skip JS scene animation on first load (CSS boot animation already running).
   if (isFirstRender) {
     isFirstRender = false;
   } else {
-    runSceneLoadingAnimation(wrapper);
+    runSceneLoadingAnimation(root);
   }
+
+  if (scene === "gameover") {
+    renderGameOver(root, api);
+    return;
+  }
+
+  const renderer = sceneMap[scene];
+
+  if (!renderer) {
+    root.textContent = `Scene not found: ${scene}`;
+    return;
+  }
+
+  const { wrapper, content } = buildSceneShell(scene);
+  root.appendChild(wrapper);
+
+  if (scene !== "mainMenu") {
+    const overlay = buildSystemOverlay();
+    wrapper.appendChild(overlay);
+    wireSystemOverlay(wrapper);
+
+    mountInventoryOverlay(wrapper, api);
+  }
+
+  renderer(content, api);
 }
 
 // Subscribe render() so every state update redraws UI.
-subscribe(render);
+subscribe(() => render(sceneRoot, api));
 
 // First draw on page load.
-render();
+render(sceneRoot, api);
