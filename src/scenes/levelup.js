@@ -168,7 +168,14 @@ export function renderLevelUp(root, api) {
   }
 
   continueBtn?.addEventListener("click", () => {
-    api.setScene("combat"); // or "gameplay" when testing is done
+    const pendingScene = api.getState().story?.pendingScene;
+    if (pendingScene) {
+      api.patchStory({ pendingScene: null });
+      api.setScene(pendingScene);
+      return;
+    }
+
+    api.setScene("dogtown");
   });
 
   paint();

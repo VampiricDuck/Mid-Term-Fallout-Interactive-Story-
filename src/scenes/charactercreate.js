@@ -15,7 +15,7 @@ export function renderCharacterCreate(root, api) {
   root.innerHTML = `
     <section class="scene scene-character-create">
       <h1>What Makes You S.P.E.C.I.A.L.?</h1><br />
-      <img src="(0)Images/placeholder.png" alt="Character Creation Image" class="character-create-image" width="100" height="100" /><br /><br />
+      <img src="(0)Images/charactercreate.png" alt="Character Creation Image" class="character-create-image" width="160" height="100" /><br /><br />
       -------------------------------------------------------<br /><br />
       <form id="charForm">
         <label id="sex">Sex: </label><input type="button" id="malebutton" value="M"><input type="button" id="femalebutton" value="F"><br />
@@ -44,6 +44,7 @@ export function renderCharacterCreate(root, api) {
           <li><label id="barter">Barter: </label></li>
           <li><label id="breach">Breach: </label></li>
           <li><label id="explosives">Explosives: </label></li>
+          <li><label id="guns">Guns: </label></li>
           <li><label id="intimidation">Intimidation: </label></li>
           <li><label id="medicine">Medicine: </label></li>
           <li><label id="melee">Melee: </label></li>
@@ -56,7 +57,6 @@ export function renderCharacterCreate(root, api) {
       </form>
       <div class="actions continue-row">
         <button id="continueBtn">[ CONTINUE ]</button>
-        <button id="submitBtn">[ SUBMIT ]</button>
       </div>
     </section>
   `;
@@ -89,6 +89,7 @@ export function renderCharacterCreate(root, api) {
     $("#barter").textContent       = `Barter: ${sign(chardata.barter)}`;
     $("#breach").textContent       = `Breach: ${sign(chardata.breach)}`;
     $("#explosives").textContent   = `Explosives: ${sign(chardata.explosives)}`;
+    $("#guns").textContent        = `Guns: ${sign(chardata.guns)}`;
     $("#intimidation").textContent = `Intimidation: ${sign(chardata.intimidation)}`;
     $("#medicine").textContent     = `Medicine: ${sign(chardata.medicine)}`;
     $("#melee").textContent        = `Melee: ${sign(chardata.melee)}`;
@@ -146,14 +147,8 @@ export function renderCharacterCreate(root, api) {
     };
 
     api.patchPlayer(mergedPlayer);
-    api.setScene("combat"); // testing: skip levelup
-  });
-
-  root.querySelector("#submitBtn")?.addEventListener("click", () => {
-    recalcCharData();
-
-    api.patchPlayer(chardata);
-    api.setScene("combat");
+    api.patchStory({ pendingScene: null, location: "dogtownIntro" });
+    api.setScene("dogtownIntro");
   });
 
   paint();

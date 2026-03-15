@@ -4,6 +4,9 @@ import {
   syncCombatPlayerDefense,
   getPlayerWeaponsForCombat,
   getPlayerConsumablesForCombat,
+  hasPendingKarmaDecision,
+  playerPrimeKarmaAdvantage,
+  playerResolvePendingKarmaDecision,
   playerAttack,
   playerUseConsumableInCombat,
   playerTryFlee,
@@ -56,25 +59,45 @@ export function renderCombat(root, api) {
 
   function afterPlayerAction() {
     if (state.ended) return;
+    if (hasPendingKarmaDecision(state)) return;
     if (state.player.ap <= 0 || state.turn === "enemy") {
       endPlayerTurn(state);
       runEnemyIfNeeded();
     }
   }
 
+  function syncCombatInventoryToState() {
+    api.patchPlayer({
+      inventory: structuredClone(state.player?.inventory ?? []),
+      itemDecay: structuredClone(state.player?.itemDecay ?? {})
+    });
+  }
+
   function finishCombat() {
     const updated = applyCombatResultToPlayer(livePlayer, state);
-    api.patchPlayer(updated);
 
     // Clear encounter cache when leaving combat.
     activeCombatState = null;
 
     if (state.outcome === "defeat") {
+      api.patchPlayer(updated);
       api.setScene("gameover");
       return;
     }
 
-    api.setScene("gameplay");
+    const current = api.getState();
+    const nextScene = current.story?.pendingScene || "dogtown";
+
+    api.patchState({
+      ...current,
+      player: updated,
+      story: {
+        ...(current.story ?? {}),
+        pendingScene: null,
+        location: nextScene
+      },
+      scene: nextScene
+    });
   }
 
   function renderSubmenu(kind) {
@@ -91,10 +114,11 @@ export function renderCombat(root, api) {
       submenuEl.innerHTML = weapons
         .map((w) => {
           const ap = Number(w.template?.AP ?? 4);
-          const decay = Number(w.decay ?? 0);
-          const broken = w.broken || decay >= 10;
+          const decay = w.decay == null ? null : Number(w.decay ?? 0);
+          const broken = !!w.broken;
+          const decayText = decay == null ? "" : ` | DECAY ${decay}/10${broken ? " | BROKEN" : ""}`;
           return `<button data-weapon="${w.id}" ${broken ? "disabled" : ""}>
-            [ ${w.template?.name ?? w.id} | AP ${ap} | DECAY ${decay}/10${broken ? " | BROKEN" : ""} ]
+            [ ${w.template?.name ?? w.id} | AP ${ap}${decayText} ]
           </button>`;
         })
         .join("<br />");
@@ -102,9 +126,8 @@ export function renderCombat(root, api) {
       submenuEl.querySelectorAll("[data-weapon]").forEach((btn) => {
         btn.addEventListener("click", () => {
           playerAttack(state, btn.dataset.weapon);
-          paint();
           afterPlayerAction();
-          paint();
+          syncCombatInventoryToState();
         });
       });
     }
@@ -123,9 +146,8 @@ export function renderCombat(root, api) {
       submenuEl.querySelectorAll("[data-aid]").forEach((btn) => {
         btn.addEventListener("click", () => {
           playerUseConsumableInCombat(state, btn.dataset.aid);
-          paint();
           afterPlayerAction();
-          paint();
+          syncCombatInventoryToState();
         });
       });
     }
@@ -162,6 +184,9 @@ export function renderCombat(root, api) {
       <p>>> PLAYER SP: ${state.player.sp}/${state.player.spMax}</p>
       <p>>> PLAYER AP: ${state.player.ap}/${state.player.apMax}</p>
       <p>>> PLAYER AC: ${state.player.ac}</p>
+      <p>>> KARMA CAPS: ${state.player.karmaCapsAvailable ?? 0}/${state.player.karmaCapsMax ?? 0}</p>
+      <p>>> KARMA FLIPPED: ${state.player.karmaCapsFlipped ?? 0}</p>
+      ${state.player.karmaNextRollAdvantage ? "<p>>> KARMA ADVANTAGE: READY</p>" : ""}
       <hr />
       <p>>> ENEMY: ${state.enemy.name}</p>
       <p>>> ENEMY HP: ${state.enemy.hp}/${state.enemy.hpMax}</p>
@@ -177,6 +202,7 @@ export function renderCombat(root, api) {
       actionsEl.innerHTML = `
         <p>>> Result: ${String(state.outcome ?? "").toUpperCase()}</p>
         <p>>> XP Gained: ${state.xpAwarded}</p>
+        <p>>> Caps Gained: ${state.capsAwarded ?? 0}</p>
         ${lootText ? `<p>>> Loot: ${lootText}</p>` : ""}
         <button id="combatContinueBtn">[ CONTINUE ]</button>
       `;
@@ -185,10 +211,35 @@ export function renderCombat(root, api) {
       return;
     }
 
+    if (hasPendingKarmaDecision(state)) {
+      actionsEl.innerHTML = `
+        <p>>> Resolve pending Karma decision:</p>
+        <button id="actKarmaReroll">[ REROLL WITH KARMA ]</button>
+        <button id="actKarmaKeep">[ KEEP CURRENT ROLL ]</button>
+      `;
+
+      root.querySelector("#actKarmaReroll")?.addEventListener("click", () => {
+        playerResolvePendingKarmaDecision(state, true);
+        paint();
+        afterPlayerAction();
+        paint();
+      });
+
+      root.querySelector("#actKarmaKeep")?.addEventListener("click", () => {
+        playerResolvePendingKarmaDecision(state, false);
+        paint();
+        afterPlayerAction();
+        paint();
+      });
+
+      return;
+    }
+
     actionsEl.innerHTML = `
       <button id="actAttack">[ ATTACK ]</button>
       <button id="actAid">[ USE AID ]</button>
       <button id="actFlee">[ FLEE ]</button>
+      <button id="actKarmaAdv">[ KARMA ADVANTAGE ]</button>
       <button id="actEnd">[ END TURN ]</button>
     `;
 
@@ -198,6 +249,10 @@ export function renderCombat(root, api) {
       playerTryFlee(state);
       paint();
       afterPlayerAction();
+      paint();
+    });
+    root.querySelector("#actKarmaAdv")?.addEventListener("click", () => {
+      playerPrimeKarmaAdvantage(state);
       paint();
     });
     root.querySelector("#actEnd")?.addEventListener("click", () => {

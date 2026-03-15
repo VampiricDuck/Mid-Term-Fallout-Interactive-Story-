@@ -3,6 +3,14 @@ import { ITEMS } from "../data/items.js";
 import { getXpReward } from "../data/xp.js";
 import { recalculatePlayerStats } from "./leveling.js";
 import { getPerkRank } from "../data/perks.js";
+import {
+  ensureKarmaCaps,
+  flipKarmaCap,
+  restoreKarmaCap,
+  onNaturalOneWithFlippedCap,
+  onEnemyCriticalAgainstFlippedCap,
+  shouldAiFlipKarmaCap
+} from "./karmaCaps.js";
 
 const WEAPON_TYPES = new Set([
   "melee weapon",
@@ -13,6 +21,16 @@ const WEAPON_TYPES = new Set([
   "energy weapon",
   "thrown explosive"
 ]);
+const BARE_HANDS_WEAPON = {
+  id: "bare_hands",
+  name: "hands",
+  type: "unarmed weapon",
+  AP: 4,
+  damage: "1d2 bludgeoning",
+  CriticalHit: "20, x2",
+  properties: ["Unarmed"],
+  stackable: false
+};
 const MAX_LOG_LINES = 12;
 
 const n = (v, d = 0) => (Number.isFinite(Number(v)) ? Number(v) : d);
@@ -35,6 +53,18 @@ function weightedDifficulty() {
 
 function vitalsOf(entity) {
   return Math.max(0, n(entity?.hp, 0)) + Math.max(0, n(entity?.sp, 0));
+}
+
+function durabilityTaxOf(entity) {
+  const dt = Math.max(0, n(entity?.dt, 0));
+  const acAboveBase = Math.max(0, n(entity?.ac, 10) - 10);
+
+  // DT has a strong impact on early-game damage throughput.
+  return dt * 22 + acAboveBase * 6;
+}
+
+function threatScoreOf(entity) {
+  return vitalsOf(entity) + durabilityTaxOf(entity);
 }
 
 function parseDamage(expr) {
@@ -149,15 +179,43 @@ function addItem(player, itemId, amount = 1) {
   return p;
 }
 
+function hasFragileProperty(itemTemplate) {
+  const props = Array.isArray(itemTemplate?.properties) ? itemTemplate.properties : [];
+  return props.some((p) => String(p ?? "").toLowerCase().includes("fragile"));
+}
+
+function getWeaponBreakThreshold(itemTemplate) {
+  return hasFragileProperty(itemTemplate) ? 1 : 10;
+}
+
+function isWeaponBrokenByDecay(itemTemplate, decay) {
+  return n(decay, 0) >= getWeaponBreakThreshold(itemTemplate);
+}
+
+function isBareHandsWeaponId(itemId) {
+  return String(itemId ?? "") === BARE_HANDS_WEAPON.id;
+}
+
 function getPlayerWeapons(player) {
   const inv = Array.isArray(player?.inventory) ? player.inventory : [];
-  return inv
+  const weapons = inv
     .map(normalizeInvEntry)
     .filter((e) => e.id && e.quantity > 0 && WEAPON_TYPES.has(String(ITEMS[e.id]?.type ?? "").toLowerCase()))
     .map((e) => {
       const decay = getDecay(player, e.id);
-      return { ...e, template: ITEMS[e.id], decay, broken: decay >= 10 };
+      const template = ITEMS[e.id];
+      return { ...e, template, decay, broken: isWeaponBrokenByDecay(template, decay) };
     });
+
+  weapons.push({
+    id: BARE_HANDS_WEAPON.id,
+    quantity: 1,
+    template: BARE_HANDS_WEAPON,
+    decay: null,
+    broken: false
+  });
+
+  return weapons;
 }
 
 function getConsumables(player) {
@@ -174,7 +232,7 @@ function chooseEnemyForDifficulty(playerVitals, difficulty) {
 
   const candidates = ENEMY_KEYS.map((k) => ENEMIES[k])
     .filter(Boolean)
-    .map((e) => ({ e, score: Math.abs(vitalsOf(e) - target) }))
+    .map((e) => ({ e, score: Math.abs(threatScoreOf(e) - target) }))
     .sort((a, b) => a.score - b.score)
     .slice(0, 4);
 
@@ -255,7 +313,7 @@ function makePlayerCombatant(playerIn) {
   const apMax = perk(p, "action_hero") ? Math.min(15, apBase + 2) : apBase;
   const danceRank = perkRank(p, "the_dance"); // FIX
 
-  return {
+  return ensureKarmaCaps({
     ...p,
     itemDecay: structuredClone(playerIn?.itemDecay ?? p.itemDecay ?? {}),
     hpMax: n(p.hpMax ?? p.hp, 1),
@@ -268,7 +326,101 @@ function makePlayerCombatant(playerIn) {
     dt: armor.hasArmor ? armor.dt : baseDt,
     agimod: n(p.agimod, 0),
     lucmod: n(p.lucmod, 0)
-  };
+  });
+}
+
+function maybeRestoreCapOnNaturalOne(state, rolledD20) {
+  if (rolledD20 !== 1) return;
+  const before = n(state.player?.karmaCapsAvailable, 0);
+  state.player = onNaturalOneWithFlippedCap(state.player ?? {});
+  const after = n(state.player?.karmaCapsAvailable, 0);
+  if (after > before) {
+    pushLog(state, `>> Natural 1 restores a Karma Cap. (${after}/${state.player.karmaCapsMax} available)`);
+  }
+}
+
+function maybeRestoreCapOnEnemyCritical(state, isCrit) {
+  if (!isCrit) return;
+  const before = n(state.player?.karmaCapsAvailable, 0);
+  state.player = onEnemyCriticalAgainstFlippedCap(state.player ?? {});
+  const after = n(state.player?.karmaCapsAvailable, 0);
+  if (after > before) {
+    pushLog(state, `>> Enemy critical restores a Karma Cap. (${after}/${state.player.karmaCapsMax} available)`);
+  }
+}
+
+function resolveAttackRoll(state, ctx, d20, sourceLabel = "Roll") {
+  const { weaponId, weapon, mods, totalMod, targetAC } = ctx;
+  const total = d20 + totalMod;
+
+  if (d20 === 1) {
+    if (isBareHandsWeaponId(weaponId)) {
+      pushLog(state, `>> ${sourceLabel}: critical fail with ${weapon.name ?? weaponId}. Attack misses.`);
+      return;
+    }
+
+    const dec = addDecay(state.player, weaponId, 1);
+    const brokeNow = !isWeaponBrokenByDecay(weapon, dec.before) && isWeaponBrokenByDecay(weapon, dec.next);
+    pushLog(
+      state,
+      `>> ${sourceLabel}: critical fail with ${weapon.name ?? weaponId}. Decay ${dec.next}/10${brokeNow ? " (BROKEN)" : ""}. Attack misses.`
+    );
+    return;
+  }
+
+  if (total < targetAC) {
+    pushLog(
+      state,
+      `>> ${sourceLabel}: ${weapon.name ?? weaponId}. Roll ${d20} ${signText(totalMod)} = ${total} vs AC ${targetAC}. Miss.`
+    );
+    return;
+  }
+
+  let dmg = parseDamage(weapon.damage ?? "1d4") + mods.flatDamage;
+
+  const critMeta = parseCrit(weapon.CriticalHit ?? weapon.criticalHit ?? "20, x2");
+  let isCrit = false;
+  if (d20 >= critMeta.threshold) {
+    isCrit = true;
+
+    if (critMeta.multiplier > 1) dmg *= critMeta.multiplier;
+    if (critMeta.bonusExpr) dmg += parseDamage(critMeta.bonusExpr);
+
+    if (d20 === 20 && perk(state.player, "big_crits")) dmg *= 2;
+  }
+
+  const dealt = applyDamage(state.enemy, dmg, mods.dtIgnore);
+
+  pushLog(
+    state,
+    `>> ${sourceLabel}: ${weapon.name ?? weaponId}. Roll ${d20} ${signText(totalMod)} = ${total} vs AC ${targetAC}. Hit for ${dealt.dmg} (${dealt.spHit} SP, ${dealt.hpHit} HP)${isCrit ? " [CRIT]" : ""}.`
+  );
+
+  if (state.enemy.hp <= 0) {
+    state.ended = true;
+    state.outcome = "victory";
+    state.xpAwarded = getXpReward(state.difficulty, "encounter");
+    state.capsAwarded = rollCapsReward(state.difficulty, n(state.player.lucmod, 0));
+    state.lootAwarded = rollLoot(state.enemy, n(state.player.lucmod, 0), state.player);
+
+    pushLog(state, `>> ${state.enemy.name} defeated. +${state.xpAwarded} XP, +${state.capsAwarded} caps`);
+  }
+}
+
+function resolveFleeRoll(state, d20, mod, dc = 10, sourceLabel = "Roll") {
+  const total = d20 + mod;
+  const success = total >= dc;
+
+  if (success) {
+    state.ended = true;
+    state.outcome = "fled";
+    state.xpAwarded = Math.floor(getXpReward(state.difficulty, "encounter") / 2);
+    pushLog(state, `>> ${sourceLabel}: flee success. Roll ${d20} ${signText(mod)} = ${total}. +${state.xpAwarded} XP`);
+    return;
+  }
+
+  state.player.ap = 0; // skip rest of turn
+  pushLog(state, `>> ${sourceLabel}: flee failed. Roll ${d20} ${signText(mod)} = ${total}. Turn lost.`);
 }
 
 function isEnemyHealAction(action) {
@@ -321,6 +473,14 @@ function rollLoot(enemy, lucmod, player = null) {
   return out;
 }
 
+function rollCapsReward(difficulty, lucmod = 0) {
+  const luckBonus = Math.max(0, Math.floor(n(lucmod, 0) / 2));
+
+  if (difficulty === "difficult") return Math.max(1, 6 + rollDie(15) + luckBonus);
+  if (difficulty === "easy") return Math.max(1, 1 + rollDie(5) + luckBonus);
+  return Math.max(1, 3 + rollDie(9) + luckBonus);
+}
+
 function normText(s) {
   return String(s ?? "").toLowerCase().replace(/[_-]/g, " ").trim();
 }
@@ -333,6 +493,10 @@ function getWeaponProps(weapon) {
 function hasProp(props, token) {
   const t = normText(token);
   return props.some((p) => p === t || p.includes(t));
+}
+
+function hasAutomaticBurst(props) {
+  return props.some((p) => p === "automatic" || p.startsWith("automatic:") || p.startsWith("automatic "));
 }
 
 function perkRankAny(player, ids) {
@@ -361,7 +525,6 @@ function getCombatModifiers(player, weapon, enemy) {
   let critThresholdDelta = 0;
   let critMultDelta = 0;
   let extraAmmoPerShot = 0;
-  let critFailDecayOn = 1;
 
   if (hasProp(props, "accurate")) toHit += 1;
   if (hasProp(props, "inaccurate")) toHit -= 1;
@@ -371,8 +534,7 @@ function getCombatModifiers(player, weapon, enemy) {
   if (hasProp(props, "vicious") || hasProp(props, "brutal")) flatDamage += 2;
   if (hasProp(props, "deadly")) critThresholdDelta -= 1;
   if (hasProp(props, "high crit")) critMultDelta += 1;
-  if (hasProp(props, "automatic")) extraAmmoPerShot += 1;
-  if (hasProp(props, "unreliable") || hasProp(props, "fragile")) critFailDecayOn = 2;
+  if (hasAutomaticBurst(props)) extraAmmoPerShot += 1;
 
   const bloodyMess = perkRankAny(player, ["bloody_mess"]);
   flatDamage += bloodyMess * 2;
@@ -408,8 +570,7 @@ function getCombatModifiers(player, weapon, enemy) {
     apDelta,
     critThresholdDelta,
     critMultDelta,
-    extraAmmoPerShot,
-    critFailDecayOn
+    extraAmmoPerShot
   };
 }
 
@@ -429,7 +590,9 @@ export function createCombatEncounter(player) {
     ended: false,
     outcome: null,
     xpAwarded: 0,
+    capsAwarded: 0,
     lootAwarded: [],
+    pendingKarmaDecision: null,
     enemyUses: {},
     log: [
       `>> ${playerName} enters combat.`,
@@ -451,9 +614,77 @@ export function syncCombatPlayerDefense(state, latestPlayer) {
   const armor = getEquippedArmorDefense(p);
   const danceRank = perkRank(p, "the_dance"); // keep consistent with combatant build
 
+  state.player = ensureKarmaCaps(state.player);
   state.player.itemDecay = structuredClone(merged.itemDecay ?? {});
   state.player.ac = (armor.hasArmor ? armor.ac : n(p.ac, state.player.ac ?? 10)) + danceRank;
   state.player.dt = armor.hasArmor ? armor.dt : n(p.dt ?? p.DT, state.player.dt ?? 0);
+}
+
+export function hasPendingKarmaDecision(state) {
+  return !!state?.pendingKarmaDecision;
+}
+
+export function playerPrimeKarmaAdvantage(state) {
+  if (state?.ended || state?.turn !== "player") return false;
+  if (state.pendingKarmaDecision) return false;
+
+  state.player = ensureKarmaCaps(state.player ?? {});
+  if (n(state.player.karmaCapsAvailable, 0) <= 0) {
+    pushLog(state, ">> No Karma Caps available.");
+    return false;
+  }
+  if (state.player.karmaNextRollAdvantage) {
+    pushLog(state, ">> Karma advantage is already primed for your next d20 roll.");
+    return false;
+  }
+
+  state.player = flipKarmaCap(state.player);
+  state.player.karmaNextRollAdvantage = true;
+  pushLog(
+    state,
+    `>> Karma Cap flipped. Next d20 roll has advantage. (${state.player.karmaCapsAvailable}/${state.player.karmaCapsMax} available)`
+  );
+  return true;
+}
+
+export function playerResolvePendingKarmaDecision(state, useReroll) {
+  if (state?.ended || state?.turn !== "player") return;
+  const pending = state?.pendingKarmaDecision;
+  if (!pending) return;
+
+  state.pendingKarmaDecision = null;
+
+  if (!useReroll) {
+    maybeRestoreCapOnNaturalOne(state, pending.originalRoll);
+    if (pending.kind === "attack") {
+      resolveAttackRoll(state, pending.context, pending.originalRoll, "Roll kept");
+    } else {
+      resolveFleeRoll(state, pending.originalRoll, pending.mod, pending.dc, "Roll kept");
+    }
+    return;
+  }
+
+  state.player = ensureKarmaCaps(state.player ?? {});
+  if (n(state.player.karmaCapsAvailable, 0) <= 0) {
+    pushLog(state, ">> No eligible Karma Cap available for reroll. Keeping original roll.");
+    maybeRestoreCapOnNaturalOne(state, pending.originalRoll);
+    if (pending.kind === "attack") {
+      resolveAttackRoll(state, pending.context, pending.originalRoll, "Roll kept");
+    } else {
+      resolveFleeRoll(state, pending.originalRoll, pending.mod, pending.dc, "Roll kept");
+    }
+    return;
+  }
+
+  state.player = flipKarmaCap(state.player);
+  const reroll = rollD20();
+  maybeRestoreCapOnNaturalOne(state, reroll);
+
+  if (pending.kind === "attack") {
+    resolveAttackRoll(state, pending.context, reroll, "Karma reroll");
+  } else {
+    resolveFleeRoll(state, reroll, pending.mod, pending.dc, "Karma reroll");
+  }
 }
 
 export function getPlayerWeaponsForCombat(state) {
@@ -466,11 +697,12 @@ export function getPlayerConsumablesForCombat(state) {
 
 export function playerAttack(state, weaponId) {
   if (state?.ended || state?.turn !== "player") return;
-  const weapon = ITEMS[weaponId];
+  if (state.pendingKarmaDecision) return pushLog(state, ">> Resolve the pending Karma decision first.");
+  const weapon = isBareHandsWeaponId(weaponId) ? BARE_HANDS_WEAPON : ITEMS[weaponId];
   if (!weapon || !WEAPON_TYPES.has(String(weapon.type ?? "").toLowerCase())) return;
 
-  const weaponDecay = getDecay(state.player, weaponId);
-  if (weaponDecay >= 10) {
+  const weaponDecay = isBareHandsWeaponId(weaponId) ? 0 : getDecay(state.player, weaponId);
+  if (!isBareHandsWeaponId(weaponId) && isWeaponBrokenByDecay(weapon, weaponDecay)) {
     pushLog(state, `>> ${weapon.name ?? weaponId} is broken and cannot be used.`);
     return;
   }
@@ -480,7 +712,7 @@ export function playerAttack(state, weaponId) {
   const apCost = Math.max(1, n(weapon.AP, 4) + mods.apDelta);
   if (state.player.ap < apCost) return pushLog(state, ">> Not enough AP.");
 
-  const ammoId = parseAmmoItemId(weapon);
+  const ammoId = isBareHandsWeaponId(weaponId) ? null : parseAmmoItemId(weapon);
   if (ammoId) {
     const ammoUse = 1 + Math.max(0, mods.extraAmmoPerShot);
     const c = consumeItem(state.player, ammoId, ammoUse);
@@ -490,54 +722,45 @@ export function playerAttack(state, weaponId) {
 
   state.player.ap -= apCost;
 
-  const d20 = rollD20();
-
-  // critical fail -> decay
-  if (d20 <= mods.critFailDecayOn) {
-    const dec = addDecay(state.player, weaponId, 1);
-    pushLog(state, `>> Critical fail with ${weapon.name ?? weaponId}. Decay ${dec.next}/10. Attack misses.`);
-    return;
-  }
-
   const skillMod = playerToHitMod(state.player, weapon);
-  const decayPenalty = getDecay(state.player, weaponId);
+  const decayPenalty = isBareHandsWeaponId(weaponId) ? 0 : getDecay(state.player, weaponId);
   const totalMod = skillMod + mods.toHit - decayPenalty;
-  const total = d20 + totalMod;
   const targetAC = n(state.enemy.ac, 10);
 
-  if (total < targetAC) {
-    pushLog(state, `>> You attack with ${weapon.name ?? weaponId}. Roll ${d20} ${signText(totalMod)} = ${total} vs AC ${targetAC}. Miss.`);
-    return;
+  let d20;
+  if (state.player.karmaNextRollAdvantage) {
+    const a = rollD20();
+    const b = rollD20();
+    d20 = Math.max(a, b);
+    state.player.karmaNextRollAdvantage = false;
+    pushLog(state, `>> Karma advantage roll: ${a} and ${b}. Taking ${d20}.`);
+  } else {
+    d20 = rollD20();
   }
 
-  let dmg = parseDamage(weapon.damage ?? "1d4") + mods.flatDamage;
+  const total = d20 + totalMod;
+  const failed = d20 === 1 || total < targetAC;
 
-  const critMeta = parseCrit(weapon.CriticalHit ?? weapon.criticalHit ?? "20, x2");
-  let isCrit = false;
-  if (d20 >= critMeta.threshold) {
-    isCrit = true;
-
-    if (critMeta.multiplier > 1) dmg *= critMeta.multiplier;
-    if (critMeta.bonusExpr) dmg += parseDamage(critMeta.bonusExpr);
-
-    if (d20 === 20 && perk(state.player, "big_crits")) dmg *= 2;
+  if (failed) {
+    if (n(state.player.karmaCapsAvailable, 0) > 0) {
+      state.pendingKarmaDecision = {
+        kind: "attack",
+        context: { weaponId, weapon, mods, totalMod, targetAC },
+        originalRoll: d20
+      };
+      pushLog(state, ">> Karma option: reroll this failed attack, or keep the current roll.");
+      return;
+    }
   }
 
-  const dealt = applyDamage(state.enemy, dmg, mods.dtIgnore);
+  maybeRestoreCapOnNaturalOne(state, d20);
 
-  pushLog(
+  resolveAttackRoll(
     state,
-    `>> You attack with ${weapon.name ?? weaponId}. Roll ${d20} ${signText(totalMod)} = ${total} vs AC ${targetAC}. Hit for ${dealt.dmg} (${dealt.spHit} SP, ${dealt.hpHit} HP)${isCrit ? " [CRIT]" : ""}.`
+    { weaponId, weapon, mods, totalMod, targetAC },
+    d20,
+    "Attack"
   );
-
-  if (state.enemy.hp <= 0) {
-    state.ended = true;
-    state.outcome = "victory";
-    state.xpAwarded = getXpReward(state.difficulty, "encounter");
-    state.lootAwarded = rollLoot(state.enemy, n(state.player.lucmod, 0), state.player);
-
-    pushLog(state, `>> ${state.enemy.name} defeated. +${state.xpAwarded} XP`);
-  }
 }
 
 export function playerUseConsumableInCombat(state, itemId) {
@@ -565,23 +788,42 @@ export function playerUseConsumableInCombat(state, itemId) {
 
 export function playerTryFlee(state) {
   if (state?.ended || state?.turn !== "player") return;
+  if (state.pendingKarmaDecision) return pushLog(state, ">> Resolve the pending Karma decision first.");
   if (state.player.ap < 2) return pushLog(state, ">> Not enough AP to flee.");
   state.player.ap -= 2;
 
-  const d20 = rollD20();
-  const mod = n(state.player.agimod, 0);
-  const total = d20 + mod;
-  const success = total >= 10; // DC 10
-
-  if (success) {
-    state.ended = true;
-    state.outcome = "fled";
-    state.xpAwarded = Math.floor(getXpReward(state.difficulty, "encounter") / 2);
-    return pushLog(state, `>> Flee success. Roll ${d20} ${signText(mod)} = ${total}. +${state.xpAwarded} XP`);
+  let d20;
+  if (state.player.karmaNextRollAdvantage) {
+    const a = rollD20();
+    const b = rollD20();
+    d20 = Math.max(a, b);
+    state.player.karmaNextRollAdvantage = false;
+    pushLog(state, `>> Karma advantage roll: ${a} and ${b}. Taking ${d20}.`);
+  } else {
+    d20 = rollD20();
   }
 
-  state.player.ap = 0; // skip rest of turn
-  pushLog(state, `>> Flee failed. Roll ${d20} ${signText(mod)} = ${total}. Turn lost.`);
+  const mod = n(state.player.agimod, 0);
+  const dc = 10;
+  const total = d20 + mod;
+  const failed = total < dc;
+
+  if (failed) {
+    if (n(state.player.karmaCapsAvailable, 0) > 0) {
+      state.pendingKarmaDecision = {
+        kind: "flee",
+        originalRoll: d20,
+        mod,
+        dc
+      };
+      pushLog(state, ">> Karma option: reroll this failed flee roll, or keep the current roll.");
+      return;
+    }
+  }
+
+  maybeRestoreCapOnNaturalOne(state, d20);
+
+  resolveFleeRoll(state, d20, mod, dc, "Flee");
 }
 
 export function endPlayerTurn(state) {
@@ -638,17 +880,52 @@ export function runEnemyTurn(state) {
 
       const d20 = rollD20();
       const mod = n(chosen.toHit, 0);
-      const total = d20 + mod;
+      let total = d20 + mod;
       const playerAC = n(state.player.ac, 10);
 
+      let finalD20 = d20;
+      const gmCanUseFlippedCaps = n(state.player?.karmaCapsFlipped, 0) > 0;
+      const gmShouldSpendCap = shouldAiFlipKarmaCap({
+        availableCaps: n(state.player?.karmaCapsFlipped, 0),
+        roll: total,
+        target: playerAC,
+        incomingCritical: d20 === 20
+      });
+
+      if (gmCanUseFlippedCaps && gmShouldSpendCap) {
+        const flippedBefore = n(state.player?.karmaCapsFlipped, 0);
+        state.player = restoreKarmaCap(state.player ?? {});
+        const flippedAfter = n(state.player?.karmaCapsFlipped, 0);
+
+        if (total < playerAC) {
+          const advRoll = rollD20();
+          finalD20 = Math.max(d20, advRoll);
+          total = finalD20 + mod;
+          pushLog(
+            state,
+            `>> GM re-flips one of your flipped Karma Caps for enemy advantage (${flippedBefore} -> ${flippedAfter} flipped). Enemy rolls ${d20} and ${advRoll}, taking ${finalD20}.`
+          );
+        } else {
+          const reroll = rollD20();
+          finalD20 = reroll;
+          total = finalD20 + mod;
+          pushLog(
+            state,
+            `>> GM re-flips one of your flipped Karma Caps for enemy reroll (${flippedBefore} -> ${flippedAfter} flipped). Enemy rerolls ${d20} -> ${finalD20}.`
+          );
+        }
+      }
+
       if (total < playerAC) {
-        pushLog(state, `>> ${state.enemy.name} uses ${chosen.name}. Roll ${d20} ${signText(mod)} = ${total} vs AC ${playerAC}. Miss.`);
+        pushLog(state, `>> ${state.enemy.name} uses ${chosen.name}. Roll ${finalD20} ${signText(mod)} = ${total} vs AC ${playerAC}. Miss.`);
         continue;
       }
 
       let dmg = parseDamage(chosen.damage ?? "1d4");
-      const isCrit = d20 === 20;
+      const isCrit = finalD20 === 20;
       if (isCrit) dmg *= 2;
+
+      maybeRestoreCapOnEnemyCritical(state, isCrit);
 
       let dtIgnore = 0;
       let tempPlayer = state.player;
@@ -662,7 +939,7 @@ export function runEnemyTurn(state) {
       state.player.hp = tempPlayer.hp;
       state.player.sp = tempPlayer.sp;
 
-      pushLog(state, `>> ${state.enemy.name} uses ${chosen.name}. Roll ${d20} ${signText(mod)} = ${total} vs AC ${playerAC}. Hit for ${dealt.dmg} (${dealt.spHit} SP, ${dealt.hpHit} HP).`);
+      pushLog(state, `>> ${state.enemy.name} uses ${chosen.name}. Roll ${finalD20} ${signText(mod)} = ${total} vs AC ${playerAC}. Hit for ${dealt.dmg} (${dealt.spHit} SP, ${dealt.hpHit} HP).`);
 
       // Armor decay on crit if wearing armor.
       const armorId = state.player?.loadout?.armorId;
@@ -674,12 +951,6 @@ export function runEnemyTurn(state) {
       }
 
       if (state.player.hp <= 0) {
-        // Armor decay when dropped to 0 HP.
-        if (armorId) {
-          const dec = addDecay(state.player, armorId, 1);
-          pushLog(state, `>> Your armor gains decay (${dec.next}/10) from being downed.`);
-          syncCombatPlayerDefense(state, state.player);
-        }
         state.ended = true;
         state.outcome = "defeat";
         state.xpAwarded = 0;
@@ -709,12 +980,23 @@ export function applyCombatResultToPlayer(basePlayer, state) {
   let p = structuredClone(basePlayer ?? {});
   p.hp = Math.max(0, n(state?.player?.hp, p.hp ?? 1));
 
+  // Keep inventory changes from combat (ammo spent, aid consumed).
+  p.inventory = structuredClone(state?.player?.inventory ?? p.inventory ?? []);
+
   const refreshed = recalculatePlayerStats({ ...p, hp: p.hp });
   p.sp = n(refreshed.sp, p.sp ?? 0);
   p.xp = Math.max(0, n(p.xp, 0) + n(state?.xpAwarded, 0));
+  p.caps = Math.max(0, n(p.caps, 0) + n(state?.capsAwarded, 0));
 
   // Persist decay
   p.itemDecay = structuredClone(state?.player?.itemDecay ?? p.itemDecay ?? {});
+
+  // Persist Karma Cap state from combat.
+  p.karmaCapsFlipped = n(state?.player?.karmaCapsFlipped, p.karmaCapsFlipped ?? 0);
+  p.karmaCapsMax = n(state?.player?.karmaCapsMax, p.karmaCapsMax ?? 1);
+  p.karmaCapsAvailable = n(state?.player?.karmaCapsAvailable, p.karmaCapsAvailable ?? p.karmaCapsMax);
+  p = ensureKarmaCaps(p);
+  delete p.karmaNextRollAdvantage;
 
   if (state?.outcome === "victory") {
     for (const drop of state.lootAwarded ?? []) {

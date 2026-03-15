@@ -6,6 +6,7 @@ import {
   loadGame,
   saveGame,
   resetState,
+  patchState,
   patchPlayer,
   patchStory
 } from "./utils/stateManager.js";
@@ -17,6 +18,22 @@ import { renderCharacterCreate } from "./scenes/charactercreate.js";
 import { renderLevelUp } from "./scenes/levelup.js";
 import { renderGameOver } from "./scenes/gameover.js";
 import { renderCombat } from "./scenes/combat.js";
+import { renderShop } from "./scenes/shop.js";
+import { renderdogtownIntro } from "./scenes/dogtownscenes/introdogtown.js";
+import { renderdogtown } from "./scenes/dogtownscenes/dogtown.js";
+import { renderlegioncamp } from "./scenes/dogtownscenes/legioncamp/legioncamp.js";
+import { renderlegioncampinfo } from "./scenes/dogtownscenes/legioncamp/legioncampinfo.js";
+import { renderlegioncampquest } from "./scenes/dogtownscenes/legioncamp/legioncampquest.js";
+import { renderboulderroad } from "./scenes/northwardscenes/boulderroad.js";
+import { renderboulder } from "./scenes/northwardscenes/boulder.js";
+import { renderbadend } from "./scenes/northwardscenes/badend.js";
+import { rendergoodend } from "./scenes/northwardscenes/goodend.js";
+import { renderdesert } from "./scenes/eastwardscenes/desert.js";
+import { renderidahospings } from "./scenes/eastwardscenes/idahospings.js";
+import { renderidahospringsquest } from "./scenes/eastwardscenes/idahospringsquest.js";
+import { rendergeorgetown } from "./scenes/southwardscenes/georgetown.js";
+import { renderncrtalk } from "./scenes/southwardscenes/ncrtalk.js";
+import { renderunexploredmnt } from "./scenes/westwardscenes/unexploredmountains.js";
 // import { renderGameplay } from "./scenes/gameplay.js";
 
 // Import UI overlays.
@@ -26,18 +43,116 @@ import { recalculatePlayerStats } from "./utils/leveling.js";
 // Grab the dynamic mount point from HTML.
 const sceneRoot = document.getElementById("sceneRoot");
 
+const MUSIC_TRACKS = [
+  "(0)music/01 Metallic Monks.mp3",
+  "(0)music/02 Desert Wind.mp3",
+  "(0)music/03 A Trader's Life.mp3",
+  "(0)music/04 The Vault Of The Future.mp3",
+  "(0)music/05 Industrial Junk.mp3",
+  "(0)music/06 Moribund World.mp3",
+  "(0)music/07 Vats Of Goo.mp3",
+  "(0)music/08 City Of The Dead.mp3",
+  "(0)music/09 Second Chance.mp3",
+  "(0)music/10 Underground Troubles.mp3",
+  "(0)music/11 City Of Lost Angels.mp3",
+  "(0)music/12 Followers' Credo.mp3",
+  "(0)music/14 Acolytes Of The New God.mp3",
+  "(0)music/15 Flame Of The Ancient World.mp3",
+  "(0)music/16 Khans Of New California.mp3"
+];
+
+let bgmAudio = null;
+let bgmStarted = false;
+let lastTrackIndex = -1;
+
+function pickNextTrackIndex() {
+  if (!MUSIC_TRACKS.length) return -1;
+  if (MUSIC_TRACKS.length === 1) return 0;
+
+  let idx = Math.floor(Math.random() * MUSIC_TRACKS.length);
+  while (idx === lastTrackIndex) {
+    idx = Math.floor(Math.random() * MUSIC_TRACKS.length);
+  }
+  return idx;
+}
+
+function playRandomTrack() {
+  if (!bgmAudio || !MUSIC_TRACKS.length) return;
+
+  const nextIdx = pickNextTrackIndex();
+  if (nextIdx < 0) return;
+
+  lastTrackIndex = nextIdx;
+  bgmAudio.src = encodeURI(MUSIC_TRACKS[nextIdx]);
+  return bgmAudio.play();
+}
+
+function ensureBackgroundMusic() {
+  if (bgmAudio) return;
+
+  bgmAudio = document.createElement("audio");
+  bgmAudio.preload = "auto";
+  bgmAudio.volume = 0.45;
+  bgmAudio.addEventListener("ended", playRandomTrack);
+  document.body.appendChild(bgmAudio);
+
+  const interactionEvents = ["pointerdown", "keydown", "touchstart"];
+
+  const removeInteractionListeners = () => {
+    interactionEvents.forEach((evtName) => {
+      window.removeEventListener(evtName, startMusic);
+    });
+  };
+
+  const startMusic = async () => {
+    if (bgmStarted) return;
+
+    try {
+      await playRandomTrack();
+      bgmStarted = true;
+      removeInteractionListeners();
+    } catch {
+      // Autoplay can be blocked until trusted user input.
+    }
+  };
+
+  interactionEvents.forEach((evtName) => {
+    window.addEventListener(evtName, startMusic);
+  });
+
+  // Try autoplay too; if blocked, interaction listeners above will start it.
+  startMusic();
+}
+
 // Map state.scene names to their renderer functions.
 const sceneMap = {
   mainMenu: renderMainMenu,
   intro: renderIntro,
   characterCreation: renderCharacterCreate,
   levelup: renderLevelUp,
-  combat: renderCombat
+  combat: renderCombat,
+  shop: renderShop,
+  dogtownIntro: renderdogtownIntro,
+  dogtown: renderdogtown,
+  legionCamp: renderlegioncamp,
+  legionCampInfo: renderlegioncampinfo,
+  legionCampQuest: renderlegioncampquest,
+  boulderRoad: renderboulderroad,
+  boulder: renderboulder,
+  badEnd: renderbadend,
+  goodEnd: rendergoodend,
+  desert: renderdesert,
+  idahoSprings: renderidahospings,
+  idahoSpringsQuest: renderidahospringsquest,
+  georgetown: rendergeorgetown,
+  ncrTalk: renderncrtalk,
+  unexploredMountains: renderunexploredmnt
 };
 
 // Tools passed into every scene so scenes can change state.
 const api = {
   getState,
+  patchState,
   setScene,
   loadGame,
   saveGame,
@@ -152,6 +267,7 @@ function wireSystemOverlay(wrapper) {
 
 const SCENE_ENTER_MS = 5000; // transition speed after startup
 let isFirstRender = true;    // track initial boot render
+let lastRenderedScene = null;
 
 function runSceneLoadingAnimation(targetEl) {
   if (!targetEl) return;
@@ -178,12 +294,16 @@ function render(root, api) {
   root.replaceChildren();
 
   const scene = api.getState().scene;
+  const previousScene = lastRenderedScene;
+  lastRenderedScene = scene;
 
   // Skip JS scene animation on first load (CSS boot animation already running).
   if (isFirstRender) {
     isFirstRender = false;
   } else {
-    runSceneLoadingAnimation(root);
+    const enteringCombat = scene === "combat" && previousScene !== "combat";
+    const shouldAnimate = scene !== "combat" || enteringCombat;
+    if (shouldAnimate) runSceneLoadingAnimation(root);
   }
 
   if (scene === "gameover") {
@@ -217,3 +337,4 @@ subscribe(() => render(sceneRoot, api));
 
 // First draw on page load.
 render(sceneRoot, api);
+ensureBackgroundMusic();
