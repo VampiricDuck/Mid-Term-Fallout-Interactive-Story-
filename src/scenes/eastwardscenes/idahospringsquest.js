@@ -25,7 +25,7 @@ export function renderidahospringsquest(root, api) {
   root.innerHTML = `
     <section class="scene scene-intro">
       <h1>IDAHO SPRINGS JOB</h1><br />
-      <img src="(0)Images/idahospings.png" alt="Idaho Springs Image" class="intro-image" width="320" height="171" /><br /><br />
+      <img src="(0)Images/idahosprings.png" alt="Idaho Springs Image" class="intro-image" width="320" height="171" /><br /><br />
       -------------------------------------------------------<br /><br />
       <p>${questDone ? "The caravan quartermaster already paid you for escorting the pump parts back through the dunes. There is no more work here right now." : "A caravan quartermaster needs spare parts and water hauled in from the edge of the dunes. The locals handle the heavy lifting; they just need someone dangerous enough to keep raiders off them. The job is already done by the time you arrive, but the quartermaster still offers the promised pay for showing up armed and ready."}</p><br />
       <div class="actions">

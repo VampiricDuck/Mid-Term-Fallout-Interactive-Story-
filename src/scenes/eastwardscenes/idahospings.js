@@ -7,7 +7,7 @@ export function renderidahospings(root, api) {
   root.innerHTML = `
     <section class="scene scene-intro">
       <h1>IDAHO SPRINGS</h1><br />
-      <img src="(0)Images/idahospings.png" alt="Idaho Springs Image" class="intro-image" width="320" height="171" /><br /><br />
+      <img src="(0)Images/idahosprings.png" alt="Idaho Springs Image" class="intro-image" width="320" height="171" /><br /><br />
       -------------------------------------------------------<br /><br />
       <p>In the middle of the desert exists this small oasis where travelers may find refuge from the scorching heat. Some have taken permanent residence, and others have set up temporary shops.</p><br />
       <p>${questDone ? "The settlement mechanic nods when you pass. You already earned your keep here." : "A settlement mechanic is paying for anyone willing to help keep the pumps and caravans moving."}</p><br />

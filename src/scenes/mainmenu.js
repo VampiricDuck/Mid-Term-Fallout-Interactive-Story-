@@ -2,7 +2,7 @@
 export function renderMainMenu(root, api) {
   root.innerHTML = `
     <section class="scene scene-main-menu">
-      <img src="(0)images/mainmenu.png" alt="Main Menu" class="scene-image" width="240" height="139">
+      <img src="(0)Images/mainmenu.png" alt="Main Menu" class="scene-image" width="240" height="139">
       <h1>MAIN MENU</h1>
       <p>Welcome to the wasteland terminal.</p>
 
