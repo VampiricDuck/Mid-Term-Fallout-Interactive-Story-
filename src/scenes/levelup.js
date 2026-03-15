@@ -25,8 +25,6 @@ const SKILL_LABELS = {
 };
 
 const HIDDEN_PERKS = new Set([
-  "on_the_go_mechanic",
-  "quick_draw",
   "old_world_gourmet"
 ]);
 
@@ -105,7 +103,7 @@ export function renderLevelUp(root, api) {
     if ((player.unspentPerkPoints ?? 0) <= 0) return;
     if (!canTakePerk(player, perkId)) return;
 
-    player = recalculatePlayerStats({
+    let nextPlayer = recalculatePlayerStats({
       ...player,
       perks: {
         ...(player.perks ?? {}),
@@ -113,6 +111,15 @@ export function renderLevelUp(root, api) {
       },
       perkPointsSpent: (player.perkPointsSpent ?? 0) + 1
     });
+
+    if (perkId === "fortune_finder") {
+      nextPlayer = {
+        ...nextPlayer,
+        caps: (Number(nextPlayer.caps) || 0) + 800
+      };
+    }
+
+    player = recalculatePlayerStats(nextPlayer);
 
     api.patchPlayer(player);
     paint();

@@ -1,3 +1,5 @@
+import { resetCharData } from "../data/characterdata.js";
+
 // Render Main Menu scene.
 export function renderMainMenu(root, api) {
   root.innerHTML = `
@@ -26,6 +28,7 @@ export function renderMainMenu(root, api) {
   };
 
   newGameBtn?.addEventListener("click", () => {
+    resetCharData();
     api.resetState();
     api.setScene("intro");
   });

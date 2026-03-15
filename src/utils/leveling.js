@@ -114,8 +114,14 @@ export function recalculatePlayerStats(player = {}) {
 
   const growthSteps = getGrowthSteps(next.level);
 
-  next.hp = 10 + next.endmod + growthSteps * (5 + next.endmod);
-  next.sp = 10 + next.agimod + growthSteps * (5 + next.agimod);
+  next.hpMax = 10 + next.endmod + growthSteps * (5 + next.endmod);
+  next.spMax = 10 + next.agimod + growthSteps * (5 + next.agimod);
+  next.hp = Number.isFinite(Number(next.hp))
+    ? Math.max(0, Math.min(next.hpMax, Number(next.hp)))
+    : next.hpMax;
+  next.sp = Number.isFinite(Number(next.sp))
+    ? Math.max(0, Math.min(next.spMax, Number(next.sp)))
+    : next.spMax;
   next.ap = next.agimod + 10;
   next.hr = (next.level + next.end) / 2;
   next.ac = 10;
@@ -150,7 +156,8 @@ export function recalculatePlayerStats(player = {}) {
     Math.min(20, 20 - Math.floor((next.lucmod ?? 0) / 2))
   );
 
-  next.karmaCapsMax = next.luc >= 10 ? 2 : 1;
+  const makeItDoubleRank = Math.max(0, Number(next.perks?.make_it_double ?? 0) || 0);
+  next.karmaCapsMax = (next.luc >= 10 ? 2 : 1) + makeItDoubleRank;
   next.karmaCapsFlipped = Math.max(
     0,
     Math.min(next.karmaCapsFlipped ?? 0, next.karmaCapsMax)

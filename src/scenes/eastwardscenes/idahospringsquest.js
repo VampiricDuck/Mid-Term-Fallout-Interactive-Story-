@@ -1,6 +1,8 @@
 import { recalculatePlayerStats } from "../../utils/leveling.js";
 import { goToScene } from "../sceneNavigation.js";
 
+const NON_FLEE_XP_MULTIPLIER = 5;
+
 function addStackableItem(inventory, itemId, quantity) {
   const nextInventory = Array.isArray(inventory) ? structuredClone(inventory) : [];
   const idx = nextInventory.findIndex((entry) => (entry?.id ?? entry?.itemId) === itemId);
@@ -41,7 +43,7 @@ export function renderidahospringsquest(root, api) {
     const withAid = addStackableItem(nextInventory, "healing_powder", 2);
     const nextPlayer = recalculatePlayerStats({
       ...player,
-      xp: (Number(player.xp) || 0) + 750,
+      xp: (Number(player.xp) || 0) + 750 * NON_FLEE_XP_MULTIPLIER,
       caps: (Number(player.caps) || 0) + 75,
       inventory: withAid
     });

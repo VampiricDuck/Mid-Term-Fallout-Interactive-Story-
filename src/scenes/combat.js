@@ -88,6 +88,20 @@ export function renderCombat(root, api) {
     const current = api.getState();
     const nextScene = current.story?.pendingScene || "dogtown";
 
+    if (updated.canLevelUp) {
+      api.patchState({
+        ...current,
+        player: updated,
+        story: {
+          ...(current.story ?? {}),
+          pendingScene: nextScene,
+          location: nextScene
+        },
+        scene: "levelup"
+      });
+      return;
+    }
+
     api.patchState({
       ...current,
       player: updated,

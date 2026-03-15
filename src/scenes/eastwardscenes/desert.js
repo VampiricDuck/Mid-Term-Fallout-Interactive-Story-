@@ -1,11 +1,13 @@
 import { recalculatePlayerStats } from "../../utils/leveling.js";
 import { goToScene, maybeTravelWithCombat } from "../sceneNavigation.js";
 
+const NON_FLEE_XP_MULTIPLIER = 5;
+
 function awardDiscoveryXp(api, nextScene, xpAward) {
   const player = api.getState().player ?? {};
   const nextPlayer = recalculatePlayerStats({
     ...player,
-    xp: (Number(player.xp) || 0) + xpAward
+    xp: (Number(player.xp) || 0) + xpAward * NON_FLEE_XP_MULTIPLIER
   });
 
   api.patchPlayer(nextPlayer);

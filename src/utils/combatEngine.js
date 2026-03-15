@@ -32,6 +32,7 @@ const BARE_HANDS_WEAPON = {
   stackable: false
 };
 const MAX_LOG_LINES = 12;
+const NON_FLEE_XP_MULTIPLIER = 5;
 
 const n = (v, d = 0) => (Number.isFinite(Number(v)) ? Number(v) : d);
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -55,6 +56,26 @@ function vitalsOf(entity) {
   return Math.max(0, n(entity?.hp, 0)) + Math.max(0, n(entity?.sp, 0));
 }
 
+function estimateDamageAverage(expr) {
+  if (!expr) return 0;
+  const s = String(expr);
+  let total = 0;
+
+  for (const m of s.matchAll(/(\d+)d(\d+)/gi)) {
+    const count = n(m[1], 0);
+    const sides = n(m[2], 0);
+    total += count * ((sides + 1) / 2);
+  }
+  for (const m of s.matchAll(/([+-]\d+)/g)) total += n(m[1], 0);
+
+  if (!/d/i.test(s) && !/[+-]\d+/.test(s)) {
+    const solo = s.match(/-?\d+/);
+    if (solo) total += n(solo[0], 0);
+  }
+
+  return Math.max(0, total);
+}
+
 function durabilityTaxOf(entity) {
   const dt = Math.max(0, n(entity?.dt, 0));
   const acAboveBase = Math.max(0, n(entity?.ac, 10) - 10);
@@ -63,8 +84,40 @@ function durabilityTaxOf(entity) {
   return dt * 22 + acAboveBase * 6;
 }
 
+function offenseThreatOf(entity) {
+  const actions = Array.isArray(entity?.actions) ? entity.actions : [];
+  if (!actions.length) return 0;
+
+  let best = 0;
+  for (const action of actions) {
+    const attacks = Math.max(1, n(action?.attacks, 1));
+    const avgDamage = estimateDamageAverage(action?.damage ?? "0");
+    const toHitFactor = clamp((10 + n(action?.toHit, 0)) / 20, 0.25, 0.95);
+    const actionThreat = attacks * avgDamage * toHitFactor;
+    if (actionThreat > best) best = actionThreat;
+  }
+
+  return best;
+}
+
 function threatScoreOf(entity) {
-  return vitalsOf(entity) + durabilityTaxOf(entity);
+  return vitalsOf(entity) + durabilityTaxOf(entity) + offenseThreatOf(entity) * 2;
+}
+
+function classifyEncounterDifficulty(playerThreat, enemyThreat) {
+  const ratio = enemyThreat / Math.max(1, playerThreat);
+  if (ratio >= 1.2) return "difficult";
+  if (ratio <= 0.85) return "easy";
+  return "average";
+}
+
+function rollPlayerAdvantageD20(player) {
+  const dice = hasPerk(player, "outrageous_advantage") ? 3 : 2;
+  const rolls = Array.from({ length: dice }, () => rollD20());
+  return {
+    rolls,
+    best: Math.max(...rolls)
+  };
 }
 
 function parseDamage(expr) {
@@ -226,9 +279,9 @@ function getConsumables(player) {
     .map((e) => ({ ...e, template: ITEMS[e.id] }));
 }
 
-function chooseEnemyForDifficulty(playerVitals, difficulty) {
+function chooseEnemyForDifficulty(playerThreat, difficulty) {
   const ratioTarget = difficulty === "easy" ? 0.75 : difficulty === "difficult" ? 1.35 : 1.0;
-  const target = playerVitals * ratioTarget;
+  const target = playerThreat * ratioTarget;
 
   const candidates = ENEMY_KEYS.map((k) => ENEMIES[k])
     .filter(Boolean)
@@ -399,8 +452,8 @@ function resolveAttackRoll(state, ctx, d20, sourceLabel = "Roll") {
   if (state.enemy.hp <= 0) {
     state.ended = true;
     state.outcome = "victory";
-    state.xpAwarded = getXpReward(state.difficulty, "encounter");
-    state.capsAwarded = rollCapsReward(state.difficulty, n(state.player.lucmod, 0));
+    state.xpAwarded = getXpReward(state.difficulty, "encounter") * NON_FLEE_XP_MULTIPLIER;
+    state.capsAwarded = rollCapsReward(state.difficulty, n(state.player.lucmod, 0), state.player);
     state.lootAwarded = rollLoot(state.enemy, n(state.player.lucmod, 0), state.player);
 
     pushLog(state, `>> ${state.enemy.name} defeated. +${state.xpAwarded} XP, +${state.capsAwarded} caps`);
@@ -473,12 +526,13 @@ function rollLoot(enemy, lucmod, player = null) {
   return out;
 }
 
-function rollCapsReward(difficulty, lucmod = 0) {
+function rollCapsReward(difficulty, lucmod = 0, player = null) {
   const luckBonus = Math.max(0, Math.floor(n(lucmod, 0) / 2));
+  const fortuneFinderBonus = perkRank(player, "fortune_finder") > 0 ? Math.max(0, n(lucmod, 0)) : 0;
 
-  if (difficulty === "difficult") return Math.max(1, 6 + rollDie(15) + luckBonus);
-  if (difficulty === "easy") return Math.max(1, 1 + rollDie(5) + luckBonus);
-  return Math.max(1, 3 + rollDie(9) + luckBonus);
+  if (difficulty === "difficult") return Math.max(1, 6 + rollDie(15) + luckBonus + fortuneFinderBonus);
+  if (difficulty === "easy") return Math.max(1, 1 + rollDie(5) + luckBonus + fortuneFinderBonus);
+  return Math.max(1, 3 + rollDie(9) + luckBonus + fortuneFinderBonus);
 }
 
 function normText(s) {
@@ -539,27 +593,6 @@ function getCombatModifiers(player, weapon, enemy) {
   const bloodyMess = perkRankAny(player, ["bloody_mess"]);
   flatDamage += bloodyMess * 2;
 
-  const betterCrits = perkRankAny(player, ["better_criticals"]);
-  if (betterCrits > 0) critMultDelta += 1;
-
-  const gunslinger = perkRankAny(player, ["gunslinger"]);
-  const commando = perkRankAny(player, ["commando"]);
-  const slugger = perkRankAny(player, ["slugger", "big_leagues"]);
-  const ironFist = perkRankAny(player, ["iron_fist", "ironfist"]);
-
-  if (isRangedWeapon(weapon)) {
-    toHit += gunslinger + commando;
-    flatDamage += gunslinger + commando;
-  }
-  if (isMeleeWeapon(weapon)) {
-    toHit += slugger;
-    flatDamage += slugger;
-  }
-  if (isUnarmedWeapon(weapon)) {
-    toHit += ironFist;
-    flatDamage += ironFist * 2;
-  }
-
   const roboticExpert = perkRankAny(player, ["robotic_expert"]);
   if (roboticExpert > 0 && normText(enemy?.group) === "robot") dtIgnore += 2;
 
@@ -576,8 +609,9 @@ function getCombatModifiers(player, weapon, enemy) {
 
 export function createCombatEncounter(player) {
   const p = makePlayerCombatant(player);
-  const difficulty = weightedDifficulty();
-  const enemy = makeEnemyCombatant(chooseEnemyForDifficulty(vitalsOf(p), difficulty));
+  const requestedDifficulty = weightedDifficulty();
+  const enemy = makeEnemyCombatant(chooseEnemyForDifficulty(threatScoreOf(p), requestedDifficulty));
+  const difficulty = classifyEncounterDifficulty(threatScoreOf(p), threatScoreOf(enemy));
   const playerName = String(p?.name ?? "Wanderer");
 
   return {
@@ -729,11 +763,10 @@ export function playerAttack(state, weaponId) {
 
   let d20;
   if (state.player.karmaNextRollAdvantage) {
-    const a = rollD20();
-    const b = rollD20();
-    d20 = Math.max(a, b);
+    const adv = rollPlayerAdvantageD20(state.player);
+    d20 = adv.best;
     state.player.karmaNextRollAdvantage = false;
-    pushLog(state, `>> Karma advantage roll: ${a} and ${b}. Taking ${d20}.`);
+    pushLog(state, `>> Karma advantage roll: ${adv.rolls.join(" and ")}. Taking ${d20}.`);
   } else {
     d20 = rollD20();
   }
@@ -794,11 +827,10 @@ export function playerTryFlee(state) {
 
   let d20;
   if (state.player.karmaNextRollAdvantage) {
-    const a = rollD20();
-    const b = rollD20();
-    d20 = Math.max(a, b);
+    const adv = rollPlayerAdvantageD20(state.player);
+    d20 = adv.best;
     state.player.karmaNextRollAdvantage = false;
-    pushLog(state, `>> Karma advantage roll: ${a} and ${b}. Taking ${d20}.`);
+    pushLog(state, `>> Karma advantage roll: ${adv.rolls.join(" and ")}. Taking ${d20}.`);
   } else {
     d20 = rollD20();
   }
@@ -984,7 +1016,7 @@ export function applyCombatResultToPlayer(basePlayer, state) {
   p.inventory = structuredClone(state?.player?.inventory ?? p.inventory ?? []);
 
   const refreshed = recalculatePlayerStats({ ...p, hp: p.hp });
-  p.sp = n(refreshed.sp, p.sp ?? 0);
+  p.sp = n(refreshed.spMax ?? refreshed.sp, p.sp ?? 0);
   p.xp = Math.max(0, n(p.xp, 0) + n(state?.xpAwarded, 0));
   p.caps = Math.max(0, n(p.caps, 0) + n(state?.capsAwarded, 0));
 
@@ -1004,7 +1036,7 @@ export function applyCombatResultToPlayer(basePlayer, state) {
     }
   }
 
-  return p;
+  return recalculatePlayerStats(p);
 }
 
 function ensureDecayMap(entity) {

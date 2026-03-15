@@ -1,18 +1,5 @@
 export const PERKS = {
-  // --- Intelligence (simple) ---
-  on_the_go_mechanic: {
-    id: "on_the_go_mechanic",
-    name: "On-the-Go Mechanic",
-    category: "intelligence",
-    maxRanks: 1,
-    requirements: { int: 5 },
-    description: "You can craft without a workbench (tools still required).",
-    effects: [
-      { type: "passive_flag", key: "portable_crafting", value: true },
-      { type: "passive_flag", key: "requires_tools_for_portable_crafting", value: true }
-    ]
-  },
-
+  // --- Intelligence ---
   nerd_rage: {
     id: "nerd_rage",
     name: "Nerd Rage!",
@@ -33,17 +20,7 @@ export const PERKS = {
     effects: [{ type: "conditional_modifier", stat: "ignoreDT", value: 2, againstTags: ["robot"] }]
   },
 
-  // --- Agility (simple) ---
-  quick_draw: {
-    id: "quick_draw",
-    name: "Quick Draw",
-    category: "agility",
-    maxRanks: 1,
-    requirements: { agi: 4 },
-    description: "Equipping or stowing an item costs 2 less AP (minimum 1).",
-    effects: [{ type: "action_cost_modifier", action: "equip_or_stow", value: -2, min: 1 }]
-  },
-
+  // --- Agility ---
   action_hero: {
     id: "action_hero",
     name: "Action Hero",
@@ -52,19 +29,6 @@ export const PERKS = {
     requirements: { agi: 4 },
     description: "Your AP maximum increases by 2 (to a max of 15).",
     effects: [{ type: "modifier", stat: "apMax", value: 2, max: 15 }]
-  },
-
-  rapid_reload: {
-    id: "rapid_reload",
-    name: "Rapid Reload",
-    category: "agility",
-    maxRanks: 1,
-    requirements: { agi: 5 },
-    description: "Reload and take-cover actions cost 3 less AP (minimum 1).",
-    effects: [
-      { type: "action_cost_modifier", action: "reload", value: -3, min: 1 },
-      { type: "action_cost_modifier", action: "take_cover", value: -3, min: 1 }
-    ]
   },
 
   the_dance: {

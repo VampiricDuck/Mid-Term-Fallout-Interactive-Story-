@@ -65,6 +65,9 @@ export function renderCharacterCreate(root, api) {
 
   function paint() {
     recalcCharData();
+    // Character creation should always display full vitals at current max values.
+    chardata.hp = chardata.hpMax ?? chardata.hp;
+    chardata.sp = chardata.spMax ?? chardata.sp;
     const sign = (n) => `${n >= 0 ? "+" : ""}${n}`;
 
     $("#sex").textContent        = `Sex: ${chardata.sex}`;
@@ -135,6 +138,8 @@ export function renderCharacterCreate(root, api) {
     chardata.name = ($("#name-input")?.value || "").trim() || "Wanderer";
     chardata.background = "wastelander";
     recalcCharData();
+    chardata.hp = chardata.hpMax ?? chardata.hp;
+    chardata.sp = chardata.spMax ?? chardata.sp;
 
     const mergedPlayer = {
       ...structuredClone(chardata),
